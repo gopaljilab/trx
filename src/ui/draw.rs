@@ -178,10 +178,20 @@ pub fn draw_ui(frame: &mut Frame, app: &mut App) {
     frame.render_stateful_widget(list, list_area, &mut app.list_state);
     let mut details_lines: Vec<Line> = Vec::new();
 
-    if app.packages.is_empty() {
-        details_lines.push(Line::from("No package selected"));
-    } else {
-        if let Some(ref info) = app.details {
+    match &app.details_state {
+        crate::ui::app::DetailsState::Empty => {
+            details_lines.push(Line::from("No package selected"));
+        }
+        crate::ui::app::DetailsState::Loading => {
+            details_lines.push(Line::from("Loading details..."));
+        }
+        crate::ui::app::DetailsState::Error(err) => {
+            details_lines.push(Line::from(vec![
+                Span::styled("Error: ", Style::default().fg(Color::Red)),
+                Span::raw(err),
+            ]));
+        }
+        crate::ui::app::DetailsState::Success(info) => {
             let mut sorted: Vec<_> = info.iter().collect();
             sorted.sort_by_key(|(k, _)| *k);
 
@@ -210,8 +220,6 @@ pub fn draw_ui(frame: &mut Frame, app: &mut App) {
                     details_lines.push(Line::from(format!("{}{}", indent, line)));
                 }
             }
-        } else {
-            details_lines.push(Line::from("Loading details..."));
         }
     }
 
@@ -244,6 +252,9 @@ pub fn draw_ui(frame: &mut Frame, app: &mut App) {
             Line::from(vec![Span::styled("Tab", Style::default().fg(Color::Yellow)), Span::raw(": Switch Tabs")]),
             Line::from(vec![Span::styled("Space", Style::default().fg(Color::Yellow)), Span::raw(": Select/Unselect")]),
             Line::from(vec![Span::styled("i", Style::default().fg(Color::Yellow)), Span::raw(": Install Selected")]),
+            Line::from(vec![Span::styled("x", Style::default().fg(Color::Yellow)), Span::raw(": Remove Selected")]),
+            Line::from(vec![Span::styled("U", Style::default().fg(Color::Yellow)), Span::raw(": Full System Upgrade")]),
+            Line::from(vec![Span::styled("R", Style::default().fg(Color::Yellow)), Span::raw(": Refresh Databases")]),
             Line::from(vec![Span::styled("j / Down", Style::default().fg(Color::Yellow)), Span::raw(": Move Down")]),
             Line::from(vec![Span::styled("k / Up", Style::default().fg(Color::Yellow)), Span::raw(": Move Up")]),
             Line::from(vec![Span::styled("?", Style::default().fg(Color::Yellow)), Span::raw(": Toggle Help")]),

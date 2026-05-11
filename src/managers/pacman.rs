@@ -103,6 +103,61 @@ pub fn search_pacman(search_word: &str) -> Vec<Package> {
     results
 }
 
+pub fn pacman_info(pkg: &str) -> Option<HashMap<String, String>> {
+    // Try -Si first (remote), then -Qi (local)
+    let output = std::process::Command::new("pacman")
+        .arg("-Si")
+        .arg(pkg)
+        .output()
+        .ok();
+
+    let output = if let Some(o) = output {
+        if o.status.success() {
+            Some(o)
+        } else {
+            std::process::Command::new("pacman")
+                .arg("-Qi")
+                .arg(pkg)
+                .output()
+                .ok()
+        }
+    } else {
+        std::process::Command::new("pacman")
+            .arg("-Qi")
+            .arg(pkg)
+            .output()
+            .ok()
+    };
+
+    if let Some(output) = output {
+        if !output.status.success() {
+            return None;
+        }
+
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let mut out = HashMap::new();
+        
+        for line in stdout.lines() {
+            let parts: Vec<&str> = line.splitn(2, ':').collect();
+            if parts.len() == 2 {
+                let key = parts[0].trim().to_string();
+                let value = parts[1].trim().to_string();
+                if !key.is_empty() {
+                    out.insert(key, value);
+                }
+            }
+        }
+        
+        if out.is_empty() {
+            None
+        } else {
+            Some(out)
+        }
+    } else {
+        None
+    }
+}
+
 //core.db -> gzip -> tar -> pkgname/desc
 //It makes a HashMap of fields and map them to values
 pub fn pacman_details(pkg: &str) -> Option<HashMap<String, String>> {
@@ -264,6 +319,42 @@ pub fn pacman_install(
         full_args
     }.as_slice())?;
 
+    Ok(())
+}
+
+pub fn pacman_remove(
+    terminal: &mut DefaultTerminal,
+    selected: &HashSet<String>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if selected.is_empty() {
+        return Ok(());
+    }
+
+    let pure: Vec<String> = selected
+        .iter()
+        .map(|n| n.split('/').last().unwrap_or(n).to_string())
+        .collect();
+
+    let mut args: Vec<String> = vec!["-Rs".into()];
+    args.extend(pure);
+
+    let args_ref: Vec<&str> = args.iter().map(|x| x.as_str()).collect();
+    execute_external_command(terminal, "sudo", {
+        let mut full_args = vec!["pacman"];
+        full_args.extend(args_ref);
+        full_args
+    }.as_slice())?;
+
+    Ok(())
+}
+
+pub fn system_upgrade(terminal: &mut DefaultTerminal) -> Result<(), Box<dyn std::error::Error>> {
+    execute_external_command(terminal, "sudo", &["pacman", "-Syu"])?;
+    Ok(())
+}
+
+pub fn refresh_databases(terminal: &mut DefaultTerminal) -> Result<(), Box<dyn std::error::Error>> {
+    execute_external_command(terminal, "sudo", &["pacman", "-Sy"])?;
     Ok(())
 }
 

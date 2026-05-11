@@ -6,7 +6,8 @@ use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyEventKind},
     widgets::ListState,
 };
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
+use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -18,6 +19,14 @@ pub enum Tab {
     Search,
     Installed,
     Updates,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum DetailsState {
+    Empty,
+    Loading,
+    Success(std::collections::HashMap<String, String>),
+    Error(String),
 }
 
 pub struct App {
@@ -33,14 +42,15 @@ pub struct App {
     pub list_state: ListState,
     pub messages: Vec<String>,
     pub loading: bool,
-    pub details: Option<std::collections::HashMap<String, String>>,
+    pub details_state: DetailsState,
     pub last_selected: usize,
     pub config: crate::config::Config,
     pub show_help: bool,
+    pub manager: Arc<Box<dyn managers::PackageManager>>,
     result_tx: Sender<Vec<Package>>,
     result_rx: Receiver<Vec<Package>>,
-    details_tx: Sender<Option<std::collections::HashMap<String, String>>>,
-    details_rx: Receiver<Option<std::collections::HashMap<String, String>>>,
+    details_tx: Sender<DetailsState>,
+    details_rx: Receiver<DetailsState>,
     last_input_time: Instant,
     pending_search: bool,
     last_search_query: String,
@@ -52,6 +62,8 @@ impl App {
         list_state.select(None);
 
         let (details_tx, details_rx) = std::sync::mpsc::channel();
+        let config = crate::config::Config::load();
+        let manager = Arc::new(managers::get_system_manager(&config));
 
         Self {
             input: String::new(),
@@ -62,14 +74,15 @@ impl App {
             packages: Vec::new(),
             checked: Vec::new(),
             selected_names: HashSet::new(),
-            installed_packages: managers::pacman::get_installed_packages(),
+            installed_packages: manager.get_installed(),
             selected: 0,
             list_state,
             loading: false,
-            details: None,
+            details_state: DetailsState::Empty,
             last_selected: usize::MAX,
-            config: crate::config::Config::load(),
+            config,
             show_help: false,
+            manager,
             result_tx,
             result_rx,
             details_tx,
@@ -138,34 +151,10 @@ impl App {
                 self.loading = true;
 
                 let tx = self.result_tx.clone();
-                let aur_helper = self.config.aur_helper.clone();
+                let manager = self.manager.clone();
 
                 thread::spawn(move || {
-                    // spawn pacman search
-                    let pac_handle = thread::spawn({
-                        let q = query.clone();
-                        move || managers::pacman::search_pacman(&q)
-                    });
-
-                    let aur_handle = thread::spawn({
-                        let q = query.clone();
-                        move || managers::yay::search_aur(&q, &aur_helper)
-                    });
-
-                    // get pacman results
-
-                    let mut all = pac_handle.join().unwrap_or_default();
-                    all.extend(aur_handle.join().unwrap_or_default());
-
-                    all.sort_by(|a, b| {
-                        b.score
-                            .partial_cmp(&a.score)
-                            .unwrap_or(std::cmp::Ordering::Equal)
-                    });
-
-                    // keep only top 50
-                    all.truncate(50);
-
+                    let all = manager.search(&query);
                     let _ = tx.send(all);
                 });
             } else if query.is_empty() {
@@ -184,29 +173,26 @@ impl App {
             return Ok(());
         }
 
-        let mut pacman_pkgs = HashSet::new();
-        let mut aur_pkgs = HashSet::new();
+        self.manager.install(terminal, &self.selected_names)
+    }
 
+    fn run_remove_command(
+        &self,
+        terminal: &mut DefaultTerminal,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        if self.selected_names.is_empty() {
+            return Ok(());
+        }
+
+        let mut to_remove = HashSet::new();
         for name in &self.selected_names {
-            if let Some(pkg) = self.packages.iter().find(|p| p.name == *name) {
-                match pkg.provider.as_str() {
-                    "pacman" => {
-                        pacman_pkgs.insert(name.clone());
-                    }
-                    "aur" => {
-                        aur_pkgs.insert(name.clone());
-                    }
-                    _ => {}
-                }
+            if self.installed_packages.contains(name) {
+                to_remove.insert(name.clone());
             }
         }
 
-        if !pacman_pkgs.is_empty() {
-            managers::pacman::pacman_install(terminal, &pacman_pkgs)?;
-        }
-
-        if !aur_pkgs.is_empty() {
-            managers::yay::aur_install(terminal, &aur_pkgs, &self.config.aur_helper)?;
+        if !to_remove.is_empty() {
+            self.manager.remove(terminal, &to_remove)?;
         }
 
         Ok(())
@@ -226,14 +212,14 @@ impl App {
             }
             Tab::Installed => {
                 self.loading = true;
-                self.packages = managers::pacman::get_installed_packages_details();
+                self.packages = self.manager.get_installed_details();
                 self.loading = false;
                 self.selected = 0;
                 self.list_state.select(Some(0));
             }
             Tab::Updates => {
                 self.loading = true;
-                self.packages = managers::pacman::get_updates();
+                self.packages = self.manager.get_updates();
                 self.loading = false;
                 self.selected = 0;
                 self.list_state.select(Some(0));
@@ -249,6 +235,7 @@ impl App {
 
     fn trigger_details_fetch(&mut self) {
         if self.packages.is_empty() || self.selected >= self.packages.len() {
+            self.details_state = DetailsState::Empty;
             return;
         }
 
@@ -258,12 +245,17 @@ impl App {
 
         let pkg = self.packages[self.selected].clone();
         let tx = self.details_tx.clone();
+        let manager = self.manager.clone();
         self.last_selected = self.selected;
-        self.details = None; // clear current details to show loading
+        self.details_state = DetailsState::Loading;
 
         thread::spawn(move || {
-            let info = managers::details_package(&pkg.name, &pkg.provider);
-            let _ = tx.send(info);
+            let info = manager.get_details(&pkg.name, &pkg.provider);
+            if let Some(details) = info {
+                let _ = tx.send(DetailsState::Success(details));
+            } else {
+                let _ = tx.send(DetailsState::Error("Failed to fetch details".to_string()));
+            }
         });
     }
 
@@ -293,7 +285,7 @@ impl App {
                         self.trigger_details_fetch();
                     } else {
                         self.list_state.select(None);
-                        self.details = None;
+                        self.details_state = DetailsState::Empty;
                     }
 
                     self.messages = self
@@ -305,8 +297,8 @@ impl App {
             }
 
             // check details results
-            if let Ok(details) = self.details_rx.try_recv() {
-                self.details = details;
+            if let Ok(state) = self.details_rx.try_recv() {
+                self.details_state = state;
             }
 
             terminal.draw(|frame| draw_ui(frame, &mut self))?;
@@ -323,7 +315,31 @@ impl App {
                             KeyCode::Char('i') => {
                                 let _ = self.run_command(terminal);
                                 // Refresh installed status after install
-                                self.installed_packages = managers::pacman::get_installed_packages();
+                                self.installed_packages = self.manager.get_installed();
+                                if let Tab::Installed = self.current_tab {
+                                    self.packages = self.manager.get_installed_details();
+                                }
+                            }
+                            KeyCode::Char('x') => {
+                                let _ = self.run_remove_command(terminal);
+                                // Refresh
+                                self.installed_packages = self.manager.get_installed();
+                                if let Tab::Installed = self.current_tab {
+                                    self.packages = self.manager.get_installed_details();
+                                }
+                            }
+                            KeyCode::Char('U') => {
+                                let _ = self.manager.system_upgrade(terminal);
+                                self.installed_packages = self.manager.get_installed();
+                                if let Tab::Updates = self.current_tab {
+                                    self.packages = self.manager.get_updates();
+                                }
+                            }
+                            KeyCode::Char('R') => {
+                                let _ = self.manager.refresh_databases(terminal);
+                                if let Tab::Updates = self.current_tab {
+                                    self.packages = self.manager.get_updates();
+                                }
                             }
                             KeyCode::Char(' ') => {
                                 if !self.packages.is_empty() {

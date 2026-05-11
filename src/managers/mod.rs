@@ -1,8 +1,12 @@
 pub mod pacman;
 pub mod yay;
+pub mod arch;
+pub mod brew;
+pub mod apt;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
+use ratatui::DefaultTerminal;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Package {
@@ -11,6 +15,36 @@ pub struct Package {
     pub version: String,
     pub description: String,
     pub score: f64,
+}
+
+pub trait PackageManager: Send + Sync {
+    fn name(&self) -> &str;
+    fn search(&self, query: &str) -> Vec<Package>;
+    fn get_installed(&self) -> HashSet<String>;
+    fn get_installed_details(&self) -> Vec<Package>;
+    fn get_updates(&self) -> Vec<Package>;
+    fn get_details(&self, pkg: &str, provider: &str) -> Option<HashMap<String, String>>;
+    fn install(&self, terminal: &mut DefaultTerminal, pkgs: &HashSet<String>) -> Result<(), Box<dyn std::error::Error>>;
+    fn remove(&self, terminal: &mut DefaultTerminal, pkgs: &HashSet<String>) -> Result<(), Box<dyn std::error::Error>>;
+    fn system_upgrade(&self, terminal: &mut DefaultTerminal) -> Result<(), Box<dyn std::error::Error>>;
+    fn refresh_databases(&self, terminal: &mut DefaultTerminal) -> Result<(), Box<dyn std::error::Error>>;
+}
+
+pub fn get_system_manager(config: &crate::config::Config) -> Box<dyn PackageManager> {
+    if std::env::consts::OS == "macos" {
+        return Box::new(brew::BrewManager);
+    }
+
+    if std::process::Command::new("pacman").arg("--version").output().is_ok() {
+        return Box::new(arch::ArchManager::new(config.aur_helper.clone()));
+    }
+
+    if std::process::Command::new("apt").arg("--version").output().is_ok() {
+        return Box::new(apt::AptManager);
+    }
+
+    // Default or fallback
+    Box::new(arch::ArchManager::new(config.aur_helper.clone()))
 }
 
 //makes a DETAILS_CACHE which is global
@@ -57,26 +91,4 @@ pub fn parse_alternating_lines(lines: &[&str], manager: String, query: &str) -> 
     });
 
     res
-}
-
-pub fn details_package(package: &str, provider: &str) -> Option<HashMap<String, String>> {
-    {
-        let cache = DETAILS_CACHE.lock().unwrap();
-        if let Some(cached) = cache.get(package) {
-            return Some(cached.clone());
-        }
-    }
-
-    let pure_name = package.split('/').last().unwrap();
-    let provide = provider.split('/').next().unwrap();
-    let info = match provide {
-        "aur" => yay::aur_details(pure_name)?,
-        "pacman" => pacman::pacman_details(pure_name)?,
-        _ => return None,
-    };
-
-    let mut cache = DETAILS_CACHE.lock().unwrap();
-    cache.insert(package.to_string(), info.clone());
-
-    Some(info)
 }
