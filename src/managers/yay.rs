@@ -102,29 +102,6 @@ pub fn aur_install(
     Ok(())
 }
 
-pub fn aur_remove(
-    terminal: &mut DefaultTerminal,
-    selected: &HashSet<String>,
-    aur_helper: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
-    if selected.is_empty() {
-        return Ok(());
-    }
-
-    let pure: Vec<String> = selected
-        .iter()
-        .map(|n| n.split('/').last().unwrap_or(n).to_string())
-        .collect();
-
-    let mut args: Vec<String> = vec!["-Rs".into()];
-    args.extend(pure);
-
-    let args_ref: Vec<&str> = args.iter().map(|x| x.as_str()).collect();
-    execute_external_command(terminal, aur_helper, &args_ref)?;
-
-    Ok(())
-}
-
 pub fn aur_upgrade(
     terminal: &mut DefaultTerminal,
     aur_helper: &str,

@@ -148,30 +148,35 @@ pub fn draw_ui(frame: &mut Frame, app: &mut App) {
                 };
 
                 let checked_symbol = if app.selected_names.contains(&p.name) {
-                    "[*]"
+                    Span::styled("[*]", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD))
                 } else {
-                    "[ ]"
+                    Span::raw("[ ]")
                 };
 
                 let installed_indicator = if app.installed_packages.contains(&p.name) {
-                    "(I) "
+                    Span::styled("(I) ", Style::default().fg(Color::Green))
                 } else {
-                    "    "
+                    Span::raw("    ")
                 };
 
-                let content = Span::raw(format!(
-                    "{} {}{:<28} {:<20} {}",
-                    checked_symbol, installed_indicator, pkg_name, version, provider
-                ));
+                let content = Line::from(vec![
+                    checked_symbol,
+                    Span::raw(" "),
+                    installed_indicator,
+                    Span::styled(format!("{:<28}", pkg_name), Style::default().add_modifier(Modifier::BOLD)),
+                    Span::styled(format!("{:<20}", version), Style::default().fg(Color::Green)),
+                    Span::styled(provider, Style::default().fg(Color::Cyan)),
+                ]);
 
-                ListItem::new(Line::from(content))
+                ListItem::new(content)
             })
             .collect::<Vec<ListItem>>()
     };
 
     // Create a List with a highlight style and symbol
+    let list_title = format!("Packages ({})", app.manager.name());
     let list = List::new(items)
-        .block(Block::bordered().title("Packages"))
+        .block(Block::bordered().title(list_title))
         .highlight_style(Style::default().bg(Color::Blue).fg(Color::White))
         .highlight_symbol("» ");
 

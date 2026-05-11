@@ -16,6 +16,35 @@ use std::sync::mpsc;
 use ui::app::App;
 
 fn main() -> Result<()> {
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() > 1 {
+        match args[1].as_str() {
+            "--version" | "-v" => {
+                println!("trx version {}", env!("CARGO_PKG_VERSION"));
+                return Ok(());
+            }
+            "--help" | "-h" => {
+                println!("trx - A Modern Cross-Platform Package Manager TUI");
+                println!("\nUsage: trx [OPTIONS]");
+                println!("\nOptions:");
+                println!("  -v, --version    Print version information");
+                println!("  -h, --help       Print help information");
+                println!("\nKeybindings (inside TUI):");
+                println!("  q                Quit");
+                println!("  Tab              Switch between Search, Installed, and Updates tabs");
+                println!("  e                Edit search query (Search tab)");
+                println!("  Space            Select/unselect packages");
+                println!("  i                Install selected packages");
+                println!("  x                Remove selected packages");
+                println!("  U                Full system upgrade");
+                println!("  R                Refresh package databases");
+                println!("  ?                Toggle help overlay");
+                return Ok(());
+            }
+            _ => {}
+        }
+    }
+
     color_eyre::install()?;
     let mut terminal = init();
     let (result_tx, result_rx): (mpsc::Sender<(String, Vec<Package>)>, mpsc::Receiver<(String, Vec<Package>)>) =

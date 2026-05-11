@@ -6,7 +6,7 @@ use ratatui::{
     crossterm::event::{self, Event, KeyCode, KeyEventKind},
     widgets::ListState,
 };
-use std::collections::{HashSet, HashMap};
+use std::collections::HashSet;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
@@ -44,7 +44,6 @@ pub struct App {
     pub loading: bool,
     pub details_state: DetailsState,
     pub last_selected: usize,
-    pub config: crate::config::Config,
     pub show_help: bool,
     pub manager: Arc<Box<dyn managers::PackageManager>>,
     result_tx: Sender<(String, Vec<Package>)>,
@@ -80,7 +79,6 @@ impl App {
             loading: false,
             details_state: DetailsState::Empty,
             last_selected: usize::MAX,
-            config,
             show_help: false,
             manager,
             result_tx,
