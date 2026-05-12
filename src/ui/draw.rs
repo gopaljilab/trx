@@ -262,7 +262,7 @@ pub fn draw_ui(frame: &mut Frame, app: &mut App) {
 
     if app.show_help {
         let area = centered_rect(60, 40, frame.area());
-        frame.render_widget(Clear, area); //this clears out the background
+        frame.render_widget(Clear, area); // This clears out the background
         let help_text = vec![
             Line::from(vec![Span::styled(
                 "Keybindings",
