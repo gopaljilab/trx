@@ -1,6 +1,6 @@
+use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use directories::ProjectDirs;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Config {
