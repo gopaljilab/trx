@@ -3,6 +3,21 @@
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { motion, useInView } from "motion/react";
+import {
+  SCENE,
+  raisedPanel,
+  raisedCrispPanel,
+  insetWell,
+  insetDisc,
+  poppingBtn,
+  raisedGhostBtn,
+  raisedPill,
+  raisedTopBar,
+  FOCUS_RING,
+  RAISED_GRAD,
+  RAISED_BORDER,
+  RAISED_SHADOW,
+} from "./landing-material";
 
 // ─── Tokens ───────────────────────────────────────────────────────────────────
 
@@ -23,16 +38,21 @@ const C = {
   selectionFill: "rgba(85, 95, 187, 0.18)",
 };
 
-// Shadows used as borders / elevation
+// Shadows used as borders / elevation (demo terminal chrome)
 const S = {
-  ring:     "0 0 0 1px rgba(255,255,255,0.06)",
-  card:     "0 0 0 1px rgba(255,255,255,0.05), 0 4px 16px rgba(0,0,0,0.5)",
-  elevated: "0 0 0 1px rgba(255,255,255,0.07), 0 12px 40px rgba(0,0,0,0.6)",
-  hero:     "0 0 0 1px rgba(255,255,255,0.07), 0 32px 80px rgba(0,0,0,0.7), 0 8px 24px rgba(0,0,0,0.5)",
-  nav:      "0 1px 0 rgba(255,255,255,0.05)",
+  ring: "0 0 0 1px rgba(255,255,255,0.06)",
 };
 
 const MAX_W = "1280px";
+
+/** Horizontal inset for main sections below the hero (hero keeps 40px). */
+const SECTION_PAD_X = "24px";
+
+/** Vertical padding (top + bottom) for post-hero section containers. */
+const SECTION_PAD_Y = "48px";
+
+/** Official one-liner installer (curl + shell). */
+const HERO_QUICK_INSTALL = "curl -fsSL https://trx.pidev.tech/install.sh | sh";
 
 // ─── Animation helpers ────────────────────────────────────────────────────────
 
@@ -234,32 +254,18 @@ function HeroTerminal() {
   };
 
   return (
-    <div style={{
-      boxShadow: S.hero,
-      borderRadius: "10px",
-      overflow: "hidden",
-      width: "100%",
-      userSelect: "none",
-    }}>
-      {/* Title bar */}
-      <div style={{
-        background: C.surface2,
-        padding: "10px 16px",
-        display: "flex",
-        alignItems: "center",
-        gap: "8px",
-        boxShadow: "0 1px 0 rgba(255,255,255,0.04)",
-      }}>
-        <div style={{ display: "flex", gap: "6px" }}>
-          <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#7a4040" }} />
-          <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#7a6a40" }} />
-          <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#3d6b40" }} />
+    <div className={raisedCrispPanel("w-full select-none overflow-hidden")}>
+      {/* Title bar — raised strip */}
+      <div className="flex items-center gap-2 border-b border-white/[0.06] bg-gradient-to-b from-[#242424] to-[#1a1a1a] px-4 py-2.5 shadow-[0_1px_0_#ffffff28_inset]">
+        <div className="flex gap-1.5">
+          <div className="h-2.5 w-2.5 rounded-full bg-[#7a4040]" />
+          <div className="h-2.5 w-2.5 rounded-full bg-[#7a6a40]" />
+          <div className="h-2.5 w-2.5 rounded-full bg-[#3d6b40]" />
         </div>
-        <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
+        <div className="flex flex-1 justify-center">
           <span style={{ ...mono, color: C.text3, fontSize: "12px" }}>trx</span>
         </div>
-        {/* Tab bar */}
-        <div style={{ display: "flex", gap: "2px" }}>
+        <div className="flex gap-0.5">
           {["Search", "Installed", "Updates"].map((tab, i) => (
             <span key={tab} style={{
               ...mono, fontSize: "11px",
@@ -273,15 +279,12 @@ function HeroTerminal() {
       </div>
 
       {/* Three-panel body */}
-      <div style={{ display: "flex", background: C.surface, minHeight: "320px" }}>
+      <div className="flex min-h-[420px] bg-[#101010]">
 
-        {/* Sidebar */}
-        <div style={{
-          width: "180px", flexShrink: 0,
-          boxShadow: "1px 0 0 rgba(255,255,255,0.04)",
-          padding: "12px 0",
-          display: "flex", flexDirection: "column",
-        }}>
+        {/* Sidebar — inset-adjacent */}
+        <div
+          className="flex w-[180px] shrink-0 flex-col border-r border-white/[0.05] bg-[#0e0e0e] py-3 shadow-[inset_-6px_0_12px_-8px_rgba(0,0,0,0.45)]"
+        >
           {[
             { label: "Search",    active: true  },
             { label: "Installed", active: false },
@@ -311,18 +314,9 @@ function HeroTerminal() {
           </div>
         </div>
 
-        {/* Package list */}
-        <div style={{
-          flex: 1,
-          display: "flex", flexDirection: "column",
-          boxShadow: "1px 0 0 rgba(255,255,255,0.04)",
-        }}>
-          {/* Search input row */}
-          <div style={{
-            padding: "10px 14px",
-            boxShadow: "0 1px 0 rgba(255,255,255,0.04)",
-            display: "flex", alignItems: "center", gap: "8px",
-          }}>
+        {/* Package list — inset track */}
+        <div className="flex flex-1 flex-col border-r border-white/[0.05] bg-[#0c0c0c]">
+          <div className="flex items-center gap-2 border-b border-white/[0.05] px-3.5 py-2.5">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.text3} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
@@ -340,10 +334,7 @@ function HeroTerminal() {
           </div>
 
           {/* Column headers */}
-          <div style={{
-            display: "flex", padding: "4px 14px",
-            boxShadow: "0 1px 0 rgba(255,255,255,0.03)",
-          }}>
+          <div className="flex px-3.5 py-1 border-b border-white/[0.04]">
             <span style={{ ...mono, fontSize: "10px", color: C.text3, flex: 1, textTransform: "uppercase", letterSpacing: "0.08em" }}>Package</span>
             <span style={{ ...mono, fontSize: "10px", color: C.text3, width: "72px", textTransform: "uppercase", letterSpacing: "0.08em" }}>Version</span>
             <span style={{ ...mono, fontSize: "10px", color: C.text3, width: "72px", textTransform: "uppercase", letterSpacing: "0.08em" }}>Status</span>
@@ -370,13 +361,8 @@ function HeroTerminal() {
           ))}
         </div>
 
-        {/* Detail panel */}
-        <div style={{
-          width: "260px", flexShrink: 0,
-          padding: "14px 16px",
-          display: "flex", flexDirection: "column", gap: "14px",
-          background: C.surface,
-        }}>
+        {/* Detail panel — on shell */}
+        <div className="flex w-[260px] shrink-0 flex-col gap-3.5 bg-[#101010] p-4">
           <div>
             <div style={{ ...mono, fontSize: "14px", color: C.text, fontWeight: "600", marginBottom: "4px" }}>
               {selPkg.name}
@@ -386,7 +372,7 @@ function HeroTerminal() {
             </div>
           </div>
 
-          <div style={{ boxShadow: "0 1px 0 rgba(255,255,255,0.04)", paddingBottom: "14px" }}>
+          <div className="border-b border-white/[0.05] pb-3.5">
             {[
               { label: "Version",  value: detail.version },
               { label: "Size",     value: detail.size    },
@@ -405,41 +391,42 @@ function HeroTerminal() {
             </div>
             <div style={{ ...mono, fontSize: "11.5px", color: C.text2, lineHeight: "1.7" }}>
               {detail.deps.split(", ").map(dep => (
-                <span key={dep} style={{ display: "inline-block", marginRight: "6px", marginBottom: "3px" }}>
-                  <span style={{
-                    background: C.surface2, padding: "1px 6px", borderRadius: "4px",
-                    boxShadow: S.ring,
-                  }}>{dep}</span>
+                <span key={dep} className="mb-1 mr-1.5 inline-block">
+                  <span
+                    className={[RAISED_GRAD, RAISED_BORDER, RAISED_SHADOW, "inline-block rounded px-1.5 py-0.5"].join(" ")}
+                    style={mono}
+                  >
+                    {dep}
+                  </span>
                 </span>
               ))}
             </div>
           </div>
 
-          <div style={{ marginTop: "auto", display: "flex", gap: "6px" }}>
-            <button style={{
-              flex: 1, padding: "6px 0", borderRadius: "5px",
-              background: C.surface3, boxShadow: S.ring,
-              color: C.text, ...mono, fontSize: "12px",
-              border: "none", cursor: "pointer",
-            }}>Install</button>
-            <button style={{
-              padding: "6px 10px", borderRadius: "5px",
-              background: "transparent", boxShadow: S.ring,
-              color: C.text2, ...mono, fontSize: "12px",
-              border: "none", cursor: "pointer",
-            }}>Remove</button>
+          <div className="mt-auto flex gap-1.5">
+            <button
+              type="button"
+              className={[RAISED_GRAD, RAISED_BORDER, RAISED_SHADOW, "flex-1 cursor-pointer rounded-md border-none py-1.5 font-mono text-xs font-medium text-[#ebebeb] transition hover:brightness-105 active:scale-[0.98]"].join(" ")}
+              style={mono}
+            >
+              Install
+            </button>
+            <button
+              type="button"
+              className={[insetWell("rounded-md"), "cursor-pointer border-none px-2.5 py-1.5 font-mono text-xs text-[#878787] transition hover:text-[#ebebeb]"].join(" ")}
+              style={mono}
+            >
+              Remove
+            </button>
           </div>
         </div>
       </div>
 
       {/* Status bar */}
-      <div style={{
-        background: C.surface2,
-        padding: "4px 16px",
-        display: "flex", alignItems: "center",
-        ...mono, fontSize: "11px",
-        boxShadow: "0 -1px 0 rgba(255,255,255,0.04)",
-      }}>
+      <div
+        className="flex items-center border-t border-white/[0.06] bg-gradient-to-b from-[#1c1c1c] to-[#161616] px-4 py-1 shadow-[0_-1px_0_#ffffff14_inset]"
+        style={{ ...mono, fontSize: "11px" }}
+      >
         <span style={{ color: C.text, fontWeight: "700", marginRight: "16px", letterSpacing: "0.04em" }}>NORMAL</span>
         <span style={{ color: C.text3 }}>e:search · space:select · i:install · x:remove · U:upgrade · tab:switch</span>
         <span style={{ marginLeft: "auto", color: C.text3 }}>
@@ -453,30 +440,39 @@ function HeroTerminal() {
 // ─── Feature card ─────────────────────────────────────────────────────────────
 
 function FeatureCard({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
-  const [hov, setHov] = useState(false);
   return (
     <div
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
-      style={{
-        background: hov ? C.surface2 : C.surface,
-        boxShadow: hov ? S.elevated : S.card,
-        borderRadius: "10px",
-        padding: "24px",
-        transition: "background 0.2s, box-shadow 0.2s",
-        cursor: "default",
-      }}
+      className={[
+        "group flex h-full cursor-default flex-col p-6 transition-[filter,box-shadow] duration-200",
+        raisedPanel(
+          "hover:brightness-[1.03] hover:shadow-[0_1px_0.5px_#ffffff1a_inset,0_1px_1px_#ffffff38_inset,0_14px_18px_-10px_#00000078,0_24px_32px_-14px_#00000068,0_0px_8px_0px_#00000068]",
+        ),
+      ].join(" ")}
     >
-      <div style={{ color: C.text2, marginBottom: "14px" }}>{icon}</div>
-      <h3 style={{
-        color: C.text, fontSize: "14px", fontWeight: "600",
-        marginBottom: "7px", fontFamily: "var(--font-geist-sans)",
-        letterSpacing: "-0.01em",
-      }}>{title}</h3>
-      <p style={{
-        color: C.text2, fontSize: "13.5px", lineHeight: "1.65",
-        fontFamily: "var(--font-geist-sans)", margin: 0,
-      }}>{desc}</p>
+      <div
+        className={insetWell(
+          "mb-3.5 flex w-full items-center gap-3 px-3 py-2.5",
+        )}
+      >
+        <span className="shrink-0 text-[#878787] transition-colors duration-200 group-hover:text-[#ebebeb]">
+          {icon}
+        </span>
+        <h3
+          className="min-w-0 flex-1 font-semibold leading-snug tracking-tight text-[#ebebeb] [font-family:var(--font-geist-sans)]"
+          style={{ fontSize: "14px", margin: 0 }}
+        >
+          {title}
+        </h3>
+      </div>
+      <p
+        className="min-h-0 flex-1"
+        style={{
+          color: C.text2, fontSize: "13.5px", lineHeight: "1.65",
+          fontFamily: "var(--font-geist-sans)", margin: 0,
+        }}
+      >
+        {desc}
+      </p>
     </div>
   );
 }
@@ -529,17 +525,99 @@ const IconLinux = () => (
   </svg>
 );
 
+const IconClipboard = ({ size = 14, className }: { size?: number; className?: string }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+    className={["block shrink-0", className].filter(Boolean).join(" ")}
+  >
+    <rect x="9" y="2" width="13" height="13" rx="2" ry="2" />
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+  </svg>
+);
+
+const IconCheck = ({ size = 14, className }: { size?: number; className?: string }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+    className={["block shrink-0", className].filter(Boolean).join(" ")}
+  >
+    <path d="M20 6 9 17l-5-5" />
+  </svg>
+);
+
+function CopyIconButton({
+  copied,
+  onCopy,
+  idleLabel,
+  copiedLabel = "Copied",
+  compact = false,
+  iconSize: iconSizeProp,
+}: {
+  copied: boolean;
+  onCopy: () => void | Promise<void>;
+  idleLabel: string;
+  copiedLabel?: string;
+  /** Smaller hit area + icons (e.g. install step command rows). */
+  compact?: boolean;
+  iconSize?: number;
+}) {
+  const iconSize = iconSizeProp ?? (compact ? 10 : 11);
+  const sizeClass = compact ? "h-6 w-6" : "h-7 w-7";
+  return (
+    <button
+      type="button"
+      onClick={() => void onCopy()}
+      aria-label={copied ? copiedLabel : idleLabel}
+      className={[
+        "inline-flex shrink-0 items-center justify-center rounded-md border-none p-0 text-[#878787] transition",
+        "[&_svg]:block [&_svg]:shrink-0",
+        sizeClass,
+        "hover:text-[#ebebeb] hover:brightness-105 active:scale-[0.97]",
+        RAISED_GRAD,
+        RAISED_BORDER,
+        RAISED_SHADOW,
+        FOCUS_RING,
+      ].join(" ")}
+    >
+      {copied ? (
+        <IconCheck size={iconSize} />
+      ) : (
+        <IconClipboard size={iconSize} className="translate-x-px translate-y-px" />
+      )}
+    </button>
+  );
+}
+
 // ─── Step flow (SVG, no arrow glyphs) ─────────────────────────────────────────
 
-function StepFlowConnector() {
+const STEP_BEAM_DURATION_S = 1.55;
+/** Dash + gap length (user units); must match strokeDashoffset loop magnitude. */
+const STEP_BEAM_DASH_PERIOD = 40;
+
+function StepFlowConnector({ phase = 0 }: { phase?: 0 | 1 }) {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-60px 0px" });
+  const beamDelay = 0.42 + phase * (STEP_BEAM_DURATION_S / 2);
+
   return (
     <div
       ref={ref}
       style={{
-        alignSelf: "center",
-        paddingTop: "18px",
         flexShrink: 0,
         display: "flex",
         alignItems: "center",
@@ -549,17 +627,54 @@ function StepFlowConnector() {
       aria-hidden
     >
       <svg width="48" height="24" viewBox="0 0 48 24" fill="none" aria-hidden>
+        <line
+          x1="4"
+          y1="12"
+          x2="44"
+          y2="12"
+          stroke={C.selection}
+          strokeOpacity={0.22}
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
         <motion.line
           x1="4"
           y1="12"
           x2="44"
           y2="12"
           stroke={C.selection}
+          strokeOpacity={0.42}
           strokeWidth="2"
           strokeLinecap="round"
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={inView ? { pathLength: 1, opacity: 1 } : {}}
-          transition={{ duration: 0.6, ease, delay: 0.3 }}
+          initial={{ pathLength: 0 }}
+          animate={inView ? { pathLength: 1 } : {}}
+          transition={{ duration: 0.55, ease, delay: 0.2 }}
+        />
+        <motion.line
+          x1="4"
+          y1="12"
+          x2="44"
+          y2="12"
+          stroke={C.selection}
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeDasharray="12 28"
+          vectorEffect="non-scaling-stroke"
+          initial={{ strokeDashoffset: 0, opacity: 0 }}
+          animate={
+            inView
+              ? { strokeDashoffset: -STEP_BEAM_DASH_PERIOD, opacity: 1 }
+              : {}
+          }
+          transition={{
+            opacity: { duration: 0.2, delay: beamDelay },
+            strokeDashoffset: {
+              duration: STEP_BEAM_DURATION_S,
+              repeat: Infinity,
+              ease: "linear",
+              delay: beamDelay,
+            },
+          }}
         />
       </svg>
     </div>
@@ -569,26 +684,120 @@ function StepFlowConnector() {
 // ─── Step ─────────────────────────────────────────────────────────────────────
 
 function Step({ num, title, code }: { num: string; title: string; code: string }) {
+  const [copied, setCopied] = useState(false);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    };
+  }, []);
+
+  const handleCopy = async () => {
+    if (copiedTimerRef.current) {
+      clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = null;
+    }
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      copiedTimerRef.current = setTimeout(() => {
+        setCopied(false);
+        copiedTimerRef.current = null;
+      }, 1500);
+    } catch {
+      setCopied(false);
+    }
+  };
+
   return (
     <div>
-      <div style={{
-        width: "32px", height: "32px", borderRadius: "50%",
-        boxShadow: S.ring, background: C.surface2,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        color: C.text2, fontFamily: "var(--font-geist-mono)",
-        fontSize: "12px", fontWeight: "600", marginBottom: "16px",
-      }}>{num}</div>
-      <h3 style={{
-        color: C.text, fontSize: "15px", fontWeight: "600",
-        marginBottom: "10px", fontFamily: "var(--font-geist-sans)",
-        letterSpacing: "-0.015em",
-      }}>{title}</h3>
-      <div style={{
-        background: C.surface, boxShadow: S.card, borderRadius: "7px",
-        padding: "10px 14px",
-        fontFamily: "var(--font-geist-mono)", fontSize: "13px", color: C.text2,
-      }}>
-        <span style={{ color: C.text3, userSelect: "none" }}>$ </span>{code}
+      <div className="mb-4 flex items-center gap-3">
+        <div
+          className={insetDisc(
+            "flex h-8 w-8 shrink-0 items-center justify-center font-mono text-xs font-semibold text-[#878787]",
+          )}
+        >
+          {num}
+        </div>
+        <h3
+          className="min-w-0 flex-1 leading-snug tracking-tight [font-family:var(--font-geist-sans)]"
+          style={{
+            color: C.text, fontSize: "15px", fontWeight: "600",
+            margin: 0, letterSpacing: "-0.015em",
+          }}
+        >
+          {title}
+        </h3>
+      </div>
+      <div
+        className={insetWell(
+          "flex items-center gap-2 rounded-md py-0.5 pl-3.5 pr-2 font-mono text-[12px] text-[#878787]",
+        )}
+      >
+        <div className="min-w-0 flex-1 break-words leading-none">
+          <span style={{ color: C.text3, userSelect: "none" }}>$ </span>
+          {code}
+        </div>
+        <CopyIconButton
+          compact
+          copied={copied}
+          onCopy={handleCopy}
+          idleLabel={`Copy command: ${title}`}
+        />
+      </div>
+    </div>
+  );
+}
+
+function HeroCurlInstall() {
+  const [copied, setCopied] = useState(false);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    };
+  }, []);
+
+  const handleCopy = async () => {
+    if (copiedTimerRef.current) {
+      clearTimeout(copiedTimerRef.current);
+      copiedTimerRef.current = null;
+    }
+    try {
+      await navigator.clipboard.writeText(HERO_QUICK_INSTALL);
+      setCopied(true);
+      copiedTimerRef.current = setTimeout(() => {
+        setCopied(false);
+        copiedTimerRef.current = null;
+      }, 1500);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  return (
+    <div className="flex w-full min-w-0 flex-col gap-2">
+      <p
+        className="text-[12px] font-medium leading-snug text-[#878787] [font-family:var(--font-geist-sans)]"
+        style={{ letterSpacing: "-0.01em" }}
+      >
+        Quick install — paste in your terminal:
+      </p>
+      <div
+        className={insetWell(
+          "inline-flex w-full items-center gap-2 rounded-lg py-1 pl-3 pr-1.5 font-mono text-[12px] text-[#c4c4c4]",
+        )}
+      >
+        <div className="min-w-0 flex-1 overflow-hidden truncate whitespace-nowrap pr-0.5">
+          {HERO_QUICK_INSTALL}
+        </div>
+        <CopyIconButton
+          copied={copied}
+          onCopy={handleCopy}
+          idleLabel="Copy quick install command"
+        />
       </div>
     </div>
   );
@@ -598,11 +807,8 @@ function Step({ num, title, code }: { num: string; title: string; code: string }
 
 function PlatformBadge({ icon, name, manager }: { icon: React.ReactNode; name: string; manager: string }) {
   return (
-    <div style={{
-      background: C.surface, boxShadow: S.card, borderRadius: "10px",
-      padding: "20px 22px", display: "flex", alignItems: "center", gap: "16px",
-    }}>
-      <span style={{ color: C.text2, flexShrink: 0 }}>{icon}</span>
+    <div className={raisedPanel("flex items-center gap-4 p-5 sm:p-5")}>
+      <span className={`inline-flex shrink-0 p-2 text-[#878787] ${insetWell()}`}>{icon}</span>
       <div style={{ flex: 1 }}>
         <div style={{
           color: C.text, fontWeight: "600", fontSize: "14px",
@@ -612,31 +818,26 @@ function PlatformBadge({ icon, name, manager }: { icon: React.ReactNode; name: s
           {manager}
         </div>
       </div>
-      <span style={{
-        background: C.surface2, boxShadow: S.ring,
-        color: C.text2, padding: "3px 10px", borderRadius: "999px",
-        fontSize: "11px", fontWeight: "500",
-        fontFamily: "var(--font-geist-sans)", flexShrink: 0,
-      }}>Supported</span>
+      <span className={raisedPill("text-[#878787]")}>Supported</span>
     </div>
   );
 }
 
-// ─── Nav link ─────────────────────────────────────────────────────────────────
+// ─── Nav link (header chrome: compact, on-shell hover) ───────────────────────
 
 function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
-  const [hov, setHov] = useState(false);
   return (
     <Link
       href={href}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
-      style={{
-        color: hov ? C.text : C.text2, fontSize: "14px",
-        textDecoration: "none", fontFamily: "var(--font-geist-sans)",
-        transition: "color 0.15s",
-      }}
-    >{children}</Link>
+      className={[
+        "rounded-md px-1 py-0.5 text-sm font-medium text-[#878787] outline-none transition-colors",
+        "hover:text-[#ebebeb]",
+        "focus-visible:ring-2 focus-visible:ring-[#555fbb]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#191919]",
+        "shrink-0 [font-family:var(--font-geist-sans)] sm:text-[14px]",
+      ].join(" ")}
+    >
+      {children}
+    </Link>
   );
 }
 
@@ -666,63 +867,80 @@ function Container({ children, style }: { children: React.ReactNode; style?: Rea
 
 export default function Home() {
   return (
-    <div style={{ background: C.bg, minHeight: "100vh", color: C.text, overflowX: "hidden" }}>
+    <div className={`${SCENE} min-h-screen overflow-x-hidden text-[#ebebeb]`}>
 
-      {/* ── HEADER ─────────────────────────────────────────────────────────── */}
-      <header style={{
-        position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
-        height: "56px",
-        backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
-        background: "rgba(11,11,11,0.82)",
-        boxShadow: S.nav,
-      }}>
-        <Container style={{
-          height: "100%", display: "flex", alignItems: "center", padding: "0 40px",
-        }}>
-          <Link href="/" style={{ textDecoration: "none" }}>
-            <TrxLogo size={26} />
-          </Link>
-          <nav style={{ display: "flex", alignItems: "center", gap: "28px", marginLeft: "48px" }}>
-            <NavLink href="/#features">Features</NavLink>
-            <NavLink href="/#install">Install</NavLink>
-            <NavLink href="/#platforms">Platforms</NavLink>
-          </nav>
-          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "10px" }}>
-            <a href="https://github.com" target="_blank" rel="noopener noreferrer"
-              style={{
-                color: C.text2, fontSize: "14px", textDecoration: "none",
-                fontFamily: "var(--font-geist-sans)", padding: "5px 12px",
-                display: "flex", alignItems: "center", gap: "6px",
-              }}
-            >
-              <IconGithub size={13} /> GitHub
-            </a>
-            <Link href="/#install"
-              style={{
-                background: C.text, color: C.bg,
-                padding: "6px 14px", borderRadius: "7px",
-                fontSize: "13px", fontWeight: "600", textDecoration: "none",
-                fontFamily: "var(--font-geist-sans)",
-              }}
-            >Install</Link>
+      {/* ── HEADER (skeuomorphic: scene strip + raised shell + inset / raised controls) ─ */}
+      <header className="fixed inset-x-0 top-0 z-[100] bg-transparent">
+        <div className="mx-auto box-border max-w-[1280px] px-4 pb-2 pt-2.5 sm:px-10">
+          <div
+            className={[
+              "flex min-h-[52px] w-full items-center gap-2 sm:gap-3",
+              "rounded-2xl border border-white/[0.05]",
+              "bg-gradient-to-b from-[#202020] to-[#191919]",
+              "shadow-[0_1px_0.5px_#ffffff1a_inset,0_1px_1px_#ffffff35_inset,0_10px_10px_-9px_#00000070,0_20px_20px_-14px_#00000060,0_0px_6px_0px_#00000060]",
+              "px-2 py-1.5 sm:px-3",
+            ].join(" ")}
+          >
+            <div className="shrink-0 rounded-xl bg-[#0c0c0c] p-1 shadow-[0_0.5px_0_#ffffff40,0_2px_6px_#00000090_inset]">
+              <Link
+                href="/"
+                className="flex rounded-lg outline-none ring-offset-2 ring-offset-[#191919] focus-visible:ring-2 focus-visible:ring-[#555fbb]/45"
+              >
+                <TrxLogo size={26} />
+              </Link>
+            </div>
+
+            <nav className="ml-3 flex min-w-0 flex-1 items-center gap-4 sm:ml-6 sm:gap-7">
+              <NavLink href="/#features">Features</NavLink>
+              <NavLink href="/#install">Install</NavLink>
+              <NavLink href="/#platforms">Platforms</NavLink>
+            </nav>
+
+            <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-2.5">
+              <div className="rounded-lg bg-[#0d0d0d] px-1 py-px shadow-[0_0.5px_0_#ffffff50,0_2px_6px_#00000090_inset]">
+                <a
+                  href="https://github.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={[
+                    "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-[#878787] outline-none transition-colors",
+                    "hover:text-[#ebebeb]",
+                    "focus-visible:ring-2 focus-visible:ring-[#555fbb]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0d0d0d]",
+                    "[font-family:var(--font-geist-sans)]",
+                  ].join(" ")}
+                >
+                  <IconGithub size={13} /> GitHub
+                </a>
+              </div>
+
+              <motion.div whileTap={{ scale: 0.97 }} className="inline-block">
+                <Link
+                  href="/#install"
+                  className={[
+                    "rounded-lg border border-white/[0.06]",
+                    "bg-gradient-to-b from-[#202020] to-[#191919]",
+                    "px-3.5 py-1.5 text-sm font-semibold text-[#ebebeb] no-underline outline-none transition-transform",
+                    "shadow-[0_1px_0.5px_#ffffff1a_inset,0_1px_1px_#ffffff35_inset,0_12px_14px_-10px_#00000078,0_22px_28px_-14px_#00000062,0_2px_8px_0_#00000068]",
+                    "hover:brightness-[1.06]",
+                    "focus-visible:ring-2 focus-visible:ring-[#555fbb]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#191919]",
+                    "[font-family:var(--font-geist-sans)]",
+                  ].join(" ")}
+                >
+                  Install
+                </Link>
+              </motion.div>
+            </div>
           </div>
-        </Container>
+        </div>
       </header>
 
       {/* ── HERO ───────────────────────────────────────────────────────────── */}
-      <section style={{ paddingTop: "56px", position: "relative", zIndex: 1 }}>
+      <section style={{ paddingTop: "80px", position: "relative", zIndex: 1 }}>
         <Container style={{ padding: "80px 40px 64px" }}>
+          {/* Hero intro — two-column: headline/desc/CTAs left, curl command right */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: "48px", marginBottom: "56px", flexWrap: "wrap" }}>
 
-          {/* Text row: headline left, callout right (Linear style) */}
-          <div style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-end",
-            gap: "48px",
-            marginBottom: "56px",
-            flexWrap: "wrap",
-          }}>
-            {/* Left: headline + desc */}
+            {/* Left: headline + description + pill + CTAs */}
             <motion.div
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
@@ -738,7 +956,9 @@ export default function Home() {
                 fontFamily: "var(--font-geist-sans)",
                 marginBottom: "16px",
               }}>
-                The package manager<br />for the terminal generation.
+                The package manager
+                <br />
+                <span style={{ whiteSpace: "nowrap" }}>for the terminal generation.</span>
               </h1>
               <p style={{
                 color: C.text2,
@@ -746,53 +966,57 @@ export default function Home() {
                 lineHeight: "1.6",
                 fontFamily: "var(--font-geist-sans)",
                 maxWidth: "400px",
+                margin: 0,
               }}>
                 Fast, keyboard-driven, and cross-platform. Search 50,000+ packages
                 in under 50ms and install them without leaving your terminal.
               </p>
-            </motion.div>
-
-            {/* Right: callout + CTA (aligned to bottom of text block) */}
-            <motion.div
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease, delay: 0.12 }}
-              style={{ paddingBottom: "4px", flexShrink: 0 }}
-            >
-              <div style={{
-                display: "flex", alignItems: "center", gap: "8px",
-                marginBottom: "14px",
-              }}>
+              <div className="mb-4 mt-4 flex items-center gap-2">
                 <div style={{ width: 6, height: 6, borderRadius: "50%", background: C.installed }} />
                 <span style={{ color: C.text2, fontSize: "13.5px", fontFamily: "var(--font-geist-sans)" }}>
                   Written in pure Rust
                 </span>
                 <span style={{ color: C.text3, fontSize: "13.5px", fontFamily: "var(--font-geist-sans)" }}>
-                  · cargo install trx
+                  · no async runtime
                 </span>
               </div>
-              <div style={{ display: "flex", gap: "8px" }}>
-                <Link href="/#install" style={{
-                  background: C.text, color: C.bg,
-                  padding: "9px 18px", borderRadius: "7px",
-                  fontSize: "14px", fontWeight: "600", textDecoration: "none",
-                  fontFamily: "var(--font-geist-sans)",
-                  display: "inline-flex", alignItems: "center", gap: "6px",
-                }}>
-                  Get started
-                </Link>
-                <a href="https://github.com" target="_blank" rel="noopener noreferrer" style={{
-                  background: C.surface, boxShadow: S.ring,
-                  color: C.text2,
-                  padding: "9px 18px", borderRadius: "7px",
-                  fontSize: "14px", fontWeight: "500", textDecoration: "none",
-                  fontFamily: "var(--font-geist-sans)",
-                  display: "inline-flex", alignItems: "center", gap: "6px",
-                }}>
-                  <IconGithub size={13} /> View source
-                </a>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="inline-flex rounded-lg bg-[#0d0d0d] p-px shadow-[0_0.5px_0_#ffffff50,0_2px_6px_#00000090_inset]">
+                  <Link
+                    href="/#install"
+                    className={[
+                      "inline-flex h-8 items-center justify-center rounded-[7px] px-3 text-sm font-medium leading-none text-[#878787] no-underline outline-none transition-colors",
+                      "hover:text-[#ebebeb]",
+                      "focus-visible:ring-2 focus-visible:ring-[#555fbb]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0d0d0d]",
+                      "[font-family:var(--font-geist-sans)]",
+                    ].join(" ")}
+                  >
+                    Get started
+                  </Link>
+                </div>
+                <motion.div whileTap={{ scale: 0.97 }} className="inline-flex">
+                  <a
+                    href="https://github.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={[raisedGhostBtn(), "no-underline"].join(" ")}
+                  >
+                    <IconGithub size={13} /> View source
+                  </a>
+                </motion.div>
               </div>
             </motion.div>
+
+            {/* Right: curl install command */}
+            <motion.div
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease, delay: 0.12 }}
+              style={{ paddingBottom: "2px", flexShrink: 0, maxWidth: "420px", width: "100%" }}
+            >
+              <HeroCurlInstall />
+            </motion.div>
+
           </div>
 
           {/* Wide terminal mockup */}
@@ -808,10 +1032,8 @@ export default function Home() {
 
       {/* ── FEATURES ───────────────────────────────────────────────────────── */}
       <section id="features" style={{ position: "relative", zIndex: 1 }}>
-        <Container style={{ padding: "96px 40px" }}>
-          <div style={{ boxShadow: "0 1px 0 rgba(255,255,255,0.05)", marginBottom: "72px" }} />
-
-          <FadeUp style={{ marginBottom: "48px" }}>
+        <Container style={{ padding: `${SECTION_PAD_Y} ${SECTION_PAD_X}` }}>
+          <FadeUp style={{ marginBottom: "36px" }}>
             <Label>Features</Label>
             <h2 style={{
               fontSize: "clamp(26px, 3vw, 38px)", fontWeight: "700",
@@ -822,29 +1044,29 @@ export default function Home() {
             </h2>
           </FadeUp>
 
-          <StaggerInView style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(248px, 1fr))", gap: "12px" }}>
-            <motion.div variants={itemVariants}>
+          <StaggerInView style={{ display: "grid", alignItems: "stretch", gridTemplateColumns: "repeat(auto-fill, minmax(248px, 1fr))", gap: "12px" }}>
+            <motion.div className="h-full" variants={itemVariants}>
               <FeatureCard
                 icon={<IconSearch />}
                 title="Fuzzy Search"
                 desc="50ms debounced live search across all packages. Scoring-based fuzzy matching finds what you mean, not just exact strings."
               />
             </motion.div>
-            <motion.div variants={itemVariants}>
+            <motion.div className="h-full" variants={itemVariants}>
               <FeatureCard
                 icon={<IconBox />}
                 title="Multi-Manager"
                 desc="One interface for Homebrew, Pacman, AUR via yay, and APT. Auto-detected at launch; no config required."
               />
             </motion.div>
-            <motion.div variants={itemVariants}>
+            <motion.div className="h-full" variants={itemVariants}>
               <FeatureCard
                 icon={<IconLayers />}
                 title="Batch Operations"
                 desc="Select multiple packages with Space, then install or remove in one shot. No repeated confirmations."
               />
             </motion.div>
-            <motion.div variants={itemVariants}>
+            <motion.div className="h-full" variants={itemVariants}>
               <FeatureCard
                 icon={<IconZap />}
                 title="Zero Runtime"
@@ -857,32 +1079,31 @@ export default function Home() {
 
       {/* ── HOW IT WORKS ───────────────────────────────────────────────────── */}
       <section id="install" style={{ position: "relative", zIndex: 1 }}>
-        <div style={{ boxShadow: "0 1px 0 rgba(255,255,255,0.04)" }} />
-        <div style={{ background: C.surface }}>
-          <Container style={{ padding: "96px 40px" }}>
-            <FadeUp style={{ marginBottom: "52px" }}>
-              <Label>Get started</Label>
-              <h2 style={{
-                fontSize: "clamp(26px, 3vw, 38px)", fontWeight: "700",
-                letterSpacing: "-0.03em", fontFamily: "var(--font-geist-sans)",
-                lineHeight: "1.15", color: C.text,
-              }}>
-                Up and running<br />in 30 seconds.
-              </h2>
-            </FadeUp>
+        <Container style={{ padding: `${SECTION_PAD_Y} ${SECTION_PAD_X}` }}>
+          <FadeUp style={{ marginBottom: "36px" }}>
+            <Label>Get started</Label>
+            <h2 style={{
+              fontSize: "clamp(26px, 3vw, 38px)", fontWeight: "700",
+              letterSpacing: "-0.03em", fontFamily: "var(--font-geist-sans)",
+              lineHeight: "1.15", color: C.text, maxWidth: "440px",
+            }}>
+              Up and running<br />in 30 seconds.
+            </h2>
+          </FadeUp>
 
-            <StaggerInView style={{ display: "flex", gap: "40px", alignItems: "flex-start", flexWrap: "wrap", marginBottom: "56px" }}>
+          <div className={raisedPanel("p-6 sm:p-8")}>
+            <StaggerInView style={{ display: "flex", gap: "40px", alignItems: "flex-end", flexWrap: "wrap", marginBottom: "36px" }}>
               <motion.div variants={itemVariants} style={{ flex: 1, minWidth: "190px" }}>
                 <Step num="01" title="Install TRX" code="cargo install trx" />
               </motion.div>
               <motion.div variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { duration: 0.4, delay: 0.15 } } }}>
-                <StepFlowConnector />
+                <StepFlowConnector phase={0} />
               </motion.div>
               <motion.div variants={itemVariants} style={{ flex: 1, minWidth: "190px" }}>
                 <Step num="02" title="Launch" code="trx" />
               </motion.div>
               <motion.div variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { duration: 0.4, delay: 0.3 } } }}>
-                <StepFlowConnector />
+                <StepFlowConnector phase={1} />
               </motion.div>
               <motion.div variants={itemVariants} style={{ flex: 1, minWidth: "190px" }}>
                 <Step num="03" title="Search and install" code="e, type, space, i" />
@@ -891,11 +1112,11 @@ export default function Home() {
 
             {/* Keybindings */}
             <FadeUp>
-            <div style={{
-              background: C.surface2, boxShadow: S.card, borderRadius: "10px",
-              padding: "22px 26px",
-              display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "12px",
-            }}>
+            <div
+              className={raisedPanel(
+                "grid gap-3 p-5 sm:p-6 [grid-template-columns:repeat(auto-fill,minmax(200px,1fr))]",
+              )}
+            >
               <div style={{ gridColumn: "1 / -1", marginBottom: "2px" }}>
                 <span style={{
                   color: C.text2, fontSize: "12px", fontWeight: "600",
@@ -912,31 +1133,29 @@ export default function Home() {
                 { key: "Tab",     desc: "Switch tab" },
                 { key: "q",       desc: "Quit" },
               ].map(({ key, desc }) => (
-                <div key={key} style={{ display: "flex", alignItems: "center", gap: "9px" }}>
-                  <kbd style={{
-                    background: C.surface3, boxShadow: `${S.ring}, 0 2px 0 rgba(255,255,255,0.04)`,
-                    borderRadius: "5px", padding: "3px 8px",
-                    fontFamily: "var(--font-geist-mono)", fontSize: "11px", color: C.text2,
-                    whiteSpace: "nowrap", flexShrink: 0,
-                  }}>{key}</kbd>
+                <div key={key} className="flex items-center gap-2.5">
+                  <kbd
+                    className={insetWell(
+                      "min-w-[2rem] shrink-0 rounded-md px-2 py-1 text-center font-mono text-[11px] text-[#c4c4c4]",
+                    )}
+                  >
+                    {key}
+                  </kbd>
                   <span style={{ color: C.text2, fontSize: "13px", fontFamily: "var(--font-geist-sans)" }}>{desc}</span>
                 </div>
               ))}
             </div>
             </FadeUp>
-          </Container>
-        </div>
-        <div style={{ boxShadow: "0 1px 0 rgba(255,255,255,0.04)" }} />
+          </div>
+        </Container>
       </section>
 
       {/* ── PLATFORMS ──────────────────────────────────────────────────────── */}
       <section id="platforms" style={{ position: "relative", zIndex: 1 }}>
-        <Container style={{ padding: "96px 40px" }}>
-          <div style={{ boxShadow: "0 1px 0 rgba(255,255,255,0.04)", marginBottom: "72px" }} />
-
+        <Container style={{ padding: `${SECTION_PAD_Y} ${SECTION_PAD_X}` }}>
           <FadeUp style={{
             display: "flex", justifyContent: "space-between",
-            alignItems: "flex-end", flexWrap: "wrap", gap: "24px", marginBottom: "48px",
+            alignItems: "flex-end", flexWrap: "wrap", gap: "24px", marginBottom: "32px",
           }}>
             <div>
               <Label>Platforms</Label>
@@ -956,7 +1175,7 @@ export default function Home() {
             </p>
           </FadeUp>
 
-          <StaggerInView style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "12px" }}>
+          <StaggerInView style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "12px", marginBottom: "20px" }}>
             <motion.div variants={itemVariants}>
               <PlatformBadge icon={<IconApple />}  name="macOS"           manager="via Homebrew (brew)" />
             </motion.div>
@@ -971,61 +1190,71 @@ export default function Home() {
       </section>
 
       {/* ── FOOTER ─────────────────────────────────────────────────────────── */}
-      <footer style={{
-        background: C.surface,
-        boxShadow: "0 -1px 0 rgba(255,255,255,0.04)",
-        position: "relative", zIndex: 1,
-      }}>
-        <Container style={{
-          padding: "40px 40px",
-          display: "flex", justifyContent: "space-between",
-          alignItems: "center", flexWrap: "wrap", gap: "24px",
-        }}>
-          <div>
-            <div style={{ marginBottom: "10px" }}>
-              <TrxLogo size={24} />
+      <footer className={`relative z-10 ${SCENE} pb-0 pt-10`}>
+        <div className="mx-auto box-border max-w-[1280px] px-4 sm:px-10">
+          <div className={raisedTopBar("px-5 py-9 sm:px-10")}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: "24px",
+              }}
+            >
+              <div>
+                <TrxLogo size={24} />
+                <p style={{
+                  color: C.text3, fontSize: "13px",
+                  fontFamily: "var(--font-geist-sans)", maxWidth: "240px",
+                  lineHeight: "1.6", margin: "8px 0 0",
+                }}>
+                  A fast TUI package manager written in Rust.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-6">
+                {[
+                  { label: "GitHub", href: "https://github.com", external: true },
+                  { label: "Issues", href: "https://github.com", external: true },
+                  { label: "Docs", href: "/", external: false },
+                ].map(link =>
+                  link.external ? (
+                    <a
+                      key={link.label}
+                      href={link.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={[
+                        "text-[13px] text-[#505050] no-underline transition-colors hover:text-[#878787]",
+                        "[font-family:var(--font-geist-sans)]",
+                        FOCUS_RING,
+                      ].join(" ")}
+                    >
+                      {link.label}
+                    </a>
+                  ) : (
+                    <Link
+                      key={link.label}
+                      href={link.href}
+                      className={[
+                        "text-[13px] text-[#505050] no-underline transition-colors hover:text-[#878787]",
+                        "[font-family:var(--font-geist-sans)]",
+                        FOCUS_RING,
+                      ].join(" ")}
+                    >
+                      {link.label}
+                    </Link>
+                  )
+                )}
+              </div>
+
+              <div style={{ color: C.text3, fontSize: "12px", fontFamily: "var(--font-geist-mono)" }}>
+                MIT · 2026
+              </div>
             </div>
-            <p style={{
-              color: C.text3, fontSize: "13px",
-              fontFamily: "var(--font-geist-sans)", maxWidth: "240px",
-              lineHeight: "1.6", margin: 0,
-            }}>
-              A fast TUI package manager written in Rust.
-            </p>
           </div>
-
-          <div style={{ display: "flex", gap: "24px", alignItems: "center" }}>
-            {[
-              { label: "GitHub", href: "https://github.com", external: true },
-              { label: "Issues", href: "https://github.com", external: true },
-              { label: "Docs", href: "/", external: false },
-            ].map(link =>
-              link.external ? (
-                <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer"
-                  style={{
-                    color: C.text3, fontSize: "13px", textDecoration: "none",
-                    fontFamily: "var(--font-geist-sans)", transition: "color 0.15s",
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.color = C.text2)}
-                  onMouseLeave={e => (e.currentTarget.style.color = C.text3)}
-                >{link.label}</a>
-              ) : (
-                <Link key={link.label} href={link.href}
-                  style={{
-                    color: C.text3, fontSize: "13px", textDecoration: "none",
-                    fontFamily: "var(--font-geist-sans)", transition: "color 0.15s",
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.color = C.text2)}
-                  onMouseLeave={e => (e.currentTarget.style.color = C.text3)}
-                >{link.label}</Link>
-              )
-            )}
-          </div>
-
-          <div style={{ color: C.text3, fontSize: "12px", fontFamily: "var(--font-geist-mono)" }}>
-            MIT · 2025
-          </div>
-        </Container>
+        </div>
       </footer>
 
     </div>
