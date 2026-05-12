@@ -1,7 +1,7 @@
-use std::collections::{HashMap, HashSet};
-use crate::managers::{Package, PackageManager};
 use super::{pacman, yay};
+use crate::managers::{Package, PackageManager};
 use ratatui::DefaultTerminal;
+use std::collections::{HashMap, HashSet};
 
 pub struct ArchManager {
     pub aur_helper: String,
@@ -53,7 +53,7 @@ impl PackageManager for ArchManager {
 
         let pure_name = pkg.split('/').last().unwrap_or(pkg);
         let provide = provider.split('/').next().unwrap_or(provider);
-        
+
         let info = match provide {
             "aur" => yay::aur_details(pure_name)?,
             "pacman" => pacman::pacman_info(pure_name)?,
@@ -69,7 +69,11 @@ impl PackageManager for ArchManager {
         Some(info)
     }
 
-    fn install(&self, terminal: &mut DefaultTerminal, pkgs: &HashSet<String>) -> Result<(), Box<dyn std::error::Error>> {
+    fn install(
+        &self,
+        terminal: &mut DefaultTerminal,
+        pkgs: &HashSet<String>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let mut pacman_pkgs = HashSet::new();
         let mut aur_pkgs = HashSet::new();
 
@@ -93,17 +97,27 @@ impl PackageManager for ArchManager {
         Ok(())
     }
 
-    fn remove(&self, terminal: &mut DefaultTerminal, pkgs: &HashSet<String>) -> Result<(), Box<dyn std::error::Error>> {
+    fn remove(
+        &self,
+        terminal: &mut DefaultTerminal,
+        pkgs: &HashSet<String>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         pacman::pacman_remove(terminal, pkgs)
     }
 
-    fn system_upgrade(&self, terminal: &mut DefaultTerminal) -> Result<(), Box<dyn std::error::Error>> {
+    fn system_upgrade(
+        &self,
+        terminal: &mut DefaultTerminal,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         pacman::system_upgrade(terminal)?;
         yay::aur_upgrade(terminal, &self.aur_helper)?;
         Ok(())
     }
 
-    fn refresh_databases(&self, terminal: &mut DefaultTerminal) -> Result<(), Box<dyn std::error::Error>> {
+    fn refresh_databases(
+        &self,
+        terminal: &mut DefaultTerminal,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         pacman::refresh_databases(terminal)
     }
 }

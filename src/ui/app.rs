@@ -56,7 +56,10 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(result_tx: Sender<(String, Vec<Package>)>, result_rx: Receiver<(String, Vec<Package>)>) -> Self {
+    pub fn new(
+        result_tx: Sender<(String, Vec<Package>)>,
+        result_rx: Receiver<(String, Vec<Package>)>,
+    ) -> Self {
         let mut list_state = ListState::default();
         list_state.select(None);
 

@@ -54,7 +54,7 @@ pub fn pacman_info(pkg: &str) -> Option<HashMap<String, String>> {
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         let mut out = HashMap::new();
-        
+
         for line in stdout.lines() {
             let parts: Vec<&str> = line.splitn(2, ':').collect();
             if parts.len() == 2 {
@@ -65,12 +65,8 @@ pub fn pacman_info(pkg: &str) -> Option<HashMap<String, String>> {
                 }
             }
         }
-        
-        if out.is_empty() {
-            None
-        } else {
-            Some(out)
-        }
+
+        if out.is_empty() { None } else { Some(out) }
     } else {
         None
     }
@@ -93,11 +89,16 @@ pub fn pacman_install(
     args.extend(pure);
 
     let args_ref: Vec<&str> = args.iter().map(|x| x.as_str()).collect();
-    execute_external_command(terminal, "sudo", {
-        let mut full_args = vec!["pacman"];
-        full_args.extend(args_ref);
-        full_args
-    }.as_slice())?;
+    execute_external_command(
+        terminal,
+        "sudo",
+        {
+            let mut full_args = vec!["pacman"];
+            full_args.extend(args_ref);
+            full_args
+        }
+        .as_slice(),
+    )?;
 
     Ok(())
 }
@@ -119,11 +120,16 @@ pub fn pacman_remove(
     args.extend(pure);
 
     let args_ref: Vec<&str> = args.iter().map(|x| x.as_str()).collect();
-    execute_external_command(terminal, "sudo", {
-        let mut full_args = vec!["pacman"];
-        full_args.extend(args_ref);
-        full_args
-    }.as_slice())?;
+    execute_external_command(
+        terminal,
+        "sudo",
+        {
+            let mut full_args = vec!["pacman"];
+            full_args.extend(args_ref);
+            full_args
+        }
+        .as_slice(),
+    )?;
 
     Ok(())
 }
@@ -139,10 +145,7 @@ pub fn refresh_databases(terminal: &mut DefaultTerminal) -> Result<(), Box<dyn s
 }
 
 pub fn get_installed_packages() -> HashSet<String> {
-    let output = std::process::Command::new("pacman")
-        .arg("-Q")
-        .output()
-        .ok();
+    let output = std::process::Command::new("pacman").arg("-Q").output().ok();
 
     if let Some(output) = output {
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -156,10 +159,7 @@ pub fn get_installed_packages() -> HashSet<String> {
 }
 
 pub fn get_installed_packages_details() -> Vec<Package> {
-    let output = std::process::Command::new("pacman")
-        .arg("-Q")
-        .output()
-        .ok();
+    let output = std::process::Command::new("pacman").arg("-Q").output().ok();
 
     if let Some(output) = output {
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -186,9 +186,7 @@ pub fn get_installed_packages_details() -> Vec<Package> {
 }
 
 pub fn get_updates() -> Vec<Package> {
-    let output = std::process::Command::new("checkupdates")
-        .output()
-        .ok();
+    let output = std::process::Command::new("checkupdates").output().ok();
 
     if let Some(output) = output {
         let stdout = String::from_utf8_lossy(&output.stdout);

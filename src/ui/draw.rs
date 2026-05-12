@@ -3,7 +3,7 @@ use ratatui::{
     layout::{Constraint, Layout, Position, Rect},
     style::{Color, Modifier, Style, Stylize},
     text::{Line, Span, Text},
-    widgets::{Block, List, ListItem, Paragraph, Wrap, Clear},
+    widgets::{Block, Clear, List, ListItem, Paragraph, Wrap},
 };
 
 use crate::ui::{app::App, input::InputMode};
@@ -74,7 +74,11 @@ pub fn draw_ui(frame: &mut Frame, app: &mut App) {
             crate::ui::app::Tab::Installed => 1,
             crate::ui::app::Tab::Updates => 2,
         })
-        .highlight_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD));
+        .highlight_style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        );
     frame.render_widget(tabs, tabs_area);
 
     let horizontal = Layout::horizontal([Constraint::Percentage(50), Constraint::Percentage(50)]);
@@ -148,7 +152,12 @@ pub fn draw_ui(frame: &mut Frame, app: &mut App) {
                 };
 
                 let checked_symbol = if app.selected_names.contains(&p.name) {
-                    Span::styled("[*]", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD))
+                    Span::styled(
+                        "[*]",
+                        Style::default()
+                            .fg(Color::Green)
+                            .add_modifier(Modifier::BOLD),
+                    )
                 } else {
                     Span::raw("[ ]")
                 };
@@ -163,8 +172,14 @@ pub fn draw_ui(frame: &mut Frame, app: &mut App) {
                     checked_symbol,
                     Span::raw(" "),
                     installed_indicator,
-                    Span::styled(format!("{:<28}", pkg_name), Style::default().add_modifier(Modifier::BOLD)),
-                    Span::styled(format!("{:<20}", version), Style::default().fg(Color::Green)),
+                    Span::styled(
+                        format!("{:<28}", pkg_name),
+                        Style::default().add_modifier(Modifier::BOLD),
+                    ),
+                    Span::styled(
+                        format!("{:<20}", version),
+                        Style::default().fg(Color::Green),
+                    ),
                     Span::styled(provider, Style::default().fg(Color::Cyan)),
                 ]);
 
@@ -247,22 +262,61 @@ pub fn draw_ui(frame: &mut Frame, app: &mut App) {
 
     if app.show_help {
         let area = centered_rect(60, 40, frame.area());
-        frame.render_widget(Clear, area); //this clears out the background
+        frame.render_widget(Clear, area); // This clears out the background
         let help_text = vec![
-            Line::from(vec![Span::styled("Keybindings", Style::default().add_modifier(Modifier::BOLD))]),
+            Line::from(vec![Span::styled(
+                "Keybindings",
+                Style::default().add_modifier(Modifier::BOLD),
+            )]),
             Line::from(""),
-            Line::from(vec![Span::styled("q", Style::default().fg(Color::Yellow)), Span::raw(": Quit")]),
-            Line::from(vec![Span::styled("e", Style::default().fg(Color::Yellow)), Span::raw(": Edit Search (Search tab only)")]),
-            Line::from(vec![Span::styled("Esc", Style::default().fg(Color::Yellow)), Span::raw(": Normal Mode")]),
-            Line::from(vec![Span::styled("Tab", Style::default().fg(Color::Yellow)), Span::raw(": Switch Tabs")]),
-            Line::from(vec![Span::styled("Space", Style::default().fg(Color::Yellow)), Span::raw(": Select/Unselect")]),
-            Line::from(vec![Span::styled("i", Style::default().fg(Color::Yellow)), Span::raw(": Install Selected")]),
-            Line::from(vec![Span::styled("x", Style::default().fg(Color::Yellow)), Span::raw(": Remove Selected")]),
-            Line::from(vec![Span::styled("U", Style::default().fg(Color::Yellow)), Span::raw(": Full System Upgrade")]),
-            Line::from(vec![Span::styled("R", Style::default().fg(Color::Yellow)), Span::raw(": Refresh Databases")]),
-            Line::from(vec![Span::styled("j / Down", Style::default().fg(Color::Yellow)), Span::raw(": Move Down")]),
-            Line::from(vec![Span::styled("k / Up", Style::default().fg(Color::Yellow)), Span::raw(": Move Up")]),
-            Line::from(vec![Span::styled("?", Style::default().fg(Color::Yellow)), Span::raw(": Toggle Help")]),
+            Line::from(vec![
+                Span::styled("q", Style::default().fg(Color::Yellow)),
+                Span::raw(": Quit"),
+            ]),
+            Line::from(vec![
+                Span::styled("e", Style::default().fg(Color::Yellow)),
+                Span::raw(": Edit Search (Search tab only)"),
+            ]),
+            Line::from(vec![
+                Span::styled("Esc", Style::default().fg(Color::Yellow)),
+                Span::raw(": Normal Mode"),
+            ]),
+            Line::from(vec![
+                Span::styled("Tab", Style::default().fg(Color::Yellow)),
+                Span::raw(": Switch Tabs"),
+            ]),
+            Line::from(vec![
+                Span::styled("Space", Style::default().fg(Color::Yellow)),
+                Span::raw(": Select/Unselect"),
+            ]),
+            Line::from(vec![
+                Span::styled("i", Style::default().fg(Color::Yellow)),
+                Span::raw(": Install Selected"),
+            ]),
+            Line::from(vec![
+                Span::styled("x", Style::default().fg(Color::Yellow)),
+                Span::raw(": Remove Selected"),
+            ]),
+            Line::from(vec![
+                Span::styled("U", Style::default().fg(Color::Yellow)),
+                Span::raw(": Full System Upgrade"),
+            ]),
+            Line::from(vec![
+                Span::styled("R", Style::default().fg(Color::Yellow)),
+                Span::raw(": Refresh Databases"),
+            ]),
+            Line::from(vec![
+                Span::styled("j / Down", Style::default().fg(Color::Yellow)),
+                Span::raw(": Move Down"),
+            ]),
+            Line::from(vec![
+                Span::styled("k / Up", Style::default().fg(Color::Yellow)),
+                Span::raw(": Move Up"),
+            ]),
+            Line::from(vec![
+                Span::styled("?", Style::default().fg(Color::Yellow)),
+                Span::raw(": Toggle Help"),
+            ]),
         ];
         frame.render_widget(
             Paragraph::new(help_text)

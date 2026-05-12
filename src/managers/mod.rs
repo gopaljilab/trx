@@ -1,12 +1,12 @@
-pub mod pacman;
-pub mod yay;
+pub mod apt;
 pub mod arch;
 pub mod brew;
-pub mod apt;
+pub mod pacman;
+pub mod yay;
 
+use ratatui::DefaultTerminal;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
-use ratatui::DefaultTerminal;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Package {
@@ -24,10 +24,24 @@ pub trait PackageManager: Send + Sync {
     fn get_installed_details(&self) -> Vec<Package>;
     fn get_updates(&self) -> Vec<Package>;
     fn get_details(&self, pkg: &str, provider: &str) -> Option<HashMap<String, String>>;
-    fn install(&self, terminal: &mut DefaultTerminal, pkgs: &HashSet<String>) -> Result<(), Box<dyn std::error::Error>>;
-    fn remove(&self, terminal: &mut DefaultTerminal, pkgs: &HashSet<String>) -> Result<(), Box<dyn std::error::Error>>;
-    fn system_upgrade(&self, terminal: &mut DefaultTerminal) -> Result<(), Box<dyn std::error::Error>>;
-    fn refresh_databases(&self, terminal: &mut DefaultTerminal) -> Result<(), Box<dyn std::error::Error>>;
+    fn install(
+        &self,
+        terminal: &mut DefaultTerminal,
+        pkgs: &HashSet<String>,
+    ) -> Result<(), Box<dyn std::error::Error>>;
+    fn remove(
+        &self,
+        terminal: &mut DefaultTerminal,
+        pkgs: &HashSet<String>,
+    ) -> Result<(), Box<dyn std::error::Error>>;
+    fn system_upgrade(
+        &self,
+        terminal: &mut DefaultTerminal,
+    ) -> Result<(), Box<dyn std::error::Error>>;
+    fn refresh_databases(
+        &self,
+        terminal: &mut DefaultTerminal,
+    ) -> Result<(), Box<dyn std::error::Error>>;
 }
 
 pub fn get_system_manager(config: &crate::config::Config) -> Box<dyn PackageManager> {
@@ -35,11 +49,19 @@ pub fn get_system_manager(config: &crate::config::Config) -> Box<dyn PackageMana
         return Box::new(brew::BrewManager);
     }
 
-    if std::process::Command::new("pacman").arg("--version").output().is_ok() {
+    if std::process::Command::new("pacman")
+        .arg("--version")
+        .output()
+        .is_ok()
+    {
         return Box::new(arch::ArchManager::new(config.aur_helper.clone()));
     }
 
-    if std::process::Command::new("apt").arg("--version").output().is_ok() {
+    if std::process::Command::new("apt")
+        .arg("--version")
+        .output()
+        .is_ok()
+    {
         return Box::new(apt::AptManager);
     }
 

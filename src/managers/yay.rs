@@ -23,7 +23,9 @@ pub fn search_aur(search_word: &str, aur_helper: &str) -> Vec<Package> {
         return Vec::new();
     }
 
-    let output = Command::new(aur_helper).args(&["-Ss", search_word]).output();
+    let output = Command::new(aur_helper)
+        .args(&["-Ss", search_word])
+        .output();
 
     match output {
         Ok(output) if output.status.success() => {
