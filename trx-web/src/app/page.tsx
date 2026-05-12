@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
+import { motion, useInView } from "motion/react";
 
 // ─── Tokens ───────────────────────────────────────────────────────────────────
 
@@ -12,10 +14,13 @@ const C = {
   text:      "#ebebeb",
   text2:     "#878787",
   text3:     "#505050",
-  // functional — kept very muted
+  // functional, kept very muted
   installed: "#5d9960",
   aur:       "#5b7d9e",
   available: "#616161",
+  /** List row focus / selection accent */
+  selection: "#555FBB",
+  selectionFill: "rgba(85, 95, 187, 0.18)",
 };
 
 // Shadows used as borders / elevation
@@ -28,6 +33,66 @@ const S = {
 };
 
 const MAX_W = "1280px";
+
+// ─── Animation helpers ────────────────────────────────────────────────────────
+
+const ease = [0.25, 0.1, 0.25, 1] as const;
+
+const itemVariants = {
+  hidden:  { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease } },
+};
+
+const staggerVariants = {
+  hidden:  {},
+  visible: { transition: { staggerChildren: 0.08, delayChildren: 0.05 } },
+};
+
+function FadeUp({
+  children,
+  delay = 0,
+  style,
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  style?: React.CSSProperties;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-60px 0px" });
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 16 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.42, ease, delay }}
+      style={style}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function StaggerInView({
+  children,
+  style,
+}: {
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-60px 0px" });
+  return (
+    <motion.div
+      ref={ref}
+      initial="hidden"
+      animate={inView ? "visible" : "hidden"}
+      variants={staggerVariants}
+      style={style}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -289,8 +354,8 @@ function HeroTerminal() {
             <div key={`${demoIdx}-${pkg.name}`} style={{
               display: "flex", alignItems: "center",
               padding: "7px 14px",
-              background: i === selectedRow ? C.surface2 : "transparent",
-              borderLeft: `2px solid ${i === selectedRow ? C.text3 : "transparent"}`,
+              background: i === selectedRow ? C.selectionFill : "transparent",
+              borderLeft: `2px solid ${i === selectedRow ? C.selection : "transparent"}`,
               transition: "background 0.15s",
             }}>
               <span style={{ color: pkg.checked ? C.installed : C.surface3, fontSize: "8px", marginRight: "8px", flexShrink: 0 }}>●</span>
@@ -464,11 +529,48 @@ const IconLinux = () => (
   </svg>
 );
 
+// ─── Step flow (SVG, no arrow glyphs) ─────────────────────────────────────────
+
+function StepFlowConnector() {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-60px 0px" });
+  return (
+    <div
+      ref={ref}
+      style={{
+        alignSelf: "center",
+        paddingTop: "18px",
+        flexShrink: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        opacity: 0.9,
+      }}
+      aria-hidden
+    >
+      <svg width="48" height="24" viewBox="0 0 48 24" fill="none" aria-hidden>
+        <motion.line
+          x1="4"
+          y1="12"
+          x2="44"
+          y2="12"
+          stroke={C.selection}
+          strokeWidth="2"
+          strokeLinecap="round"
+          initial={{ pathLength: 0, opacity: 0 }}
+          animate={inView ? { pathLength: 1, opacity: 1 } : {}}
+          transition={{ duration: 0.6, ease, delay: 0.3 }}
+        />
+      </svg>
+    </div>
+  );
+}
+
 // ─── Step ─────────────────────────────────────────────────────────────────────
 
 function Step({ num, title, code }: { num: string; title: string; code: string }) {
   return (
-    <div style={{ flex: 1, minWidth: "190px" }}>
+    <div>
       <div style={{
         width: "32px", height: "32px", borderRadius: "50%",
         boxShadow: S.ring, background: C.surface2,
@@ -525,7 +627,8 @@ function PlatformBadge({ icon, name, manager }: { icon: React.ReactNode; name: s
 function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
   const [hov, setHov] = useState(false);
   return (
-    <a href={href}
+    <Link
+      href={href}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
@@ -533,7 +636,7 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
         textDecoration: "none", fontFamily: "var(--font-geist-sans)",
         transition: "color 0.15s",
       }}
-    >{children}</a>
+    >{children}</Link>
   );
 }
 
@@ -576,13 +679,13 @@ export default function Home() {
         <Container style={{
           height: "100%", display: "flex", alignItems: "center", padding: "0 40px",
         }}>
-          <a href="#" style={{ textDecoration: "none" }}>
+          <Link href="/" style={{ textDecoration: "none" }}>
             <TrxLogo size={26} />
-          </a>
+          </Link>
           <nav style={{ display: "flex", alignItems: "center", gap: "28px", marginLeft: "48px" }}>
-            <NavLink href="#features">Features</NavLink>
-            <NavLink href="#install">Install</NavLink>
-            <NavLink href="#platforms">Platforms</NavLink>
+            <NavLink href="/#features">Features</NavLink>
+            <NavLink href="/#install">Install</NavLink>
+            <NavLink href="/#platforms">Platforms</NavLink>
           </nav>
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "10px" }}>
             <a href="https://github.com" target="_blank" rel="noopener noreferrer"
@@ -594,14 +697,14 @@ export default function Home() {
             >
               <IconGithub size={13} /> GitHub
             </a>
-            <a href="#install"
+            <Link href="/#install"
               style={{
                 background: C.text, color: C.bg,
                 padding: "6px 14px", borderRadius: "7px",
                 fontSize: "13px", fontWeight: "600", textDecoration: "none",
                 fontFamily: "var(--font-geist-sans)",
               }}
-            >Install</a>
+            >Install</Link>
           </div>
         </Container>
       </header>
@@ -610,7 +713,7 @@ export default function Home() {
       <section style={{ paddingTop: "56px", position: "relative", zIndex: 1 }}>
         <Container style={{ padding: "80px 40px 64px" }}>
 
-          {/* Text row — headline left, callout right (Linear style) */}
+          {/* Text row: headline left, callout right (Linear style) */}
           <div style={{
             display: "flex",
             justifyContent: "space-between",
@@ -620,7 +723,12 @@ export default function Home() {
             flexWrap: "wrap",
           }}>
             {/* Left: headline + desc */}
-            <div style={{ maxWidth: "520px" }}>
+            <motion.div
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease, delay: 0 }}
+              style={{ maxWidth: "520px" }}
+            >
               <h1 style={{
                 fontSize: "clamp(26px, 3vw, 44px)",
                 fontWeight: "700",
@@ -642,10 +750,15 @@ export default function Home() {
                 Fast, keyboard-driven, and cross-platform. Search 50,000+ packages
                 in under 50ms and install them without leaving your terminal.
               </p>
-            </div>
+            </motion.div>
 
             {/* Right: callout + CTA (aligned to bottom of text block) */}
-            <div style={{ paddingBottom: "4px", flexShrink: 0 }}>
+            <motion.div
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease, delay: 0.12 }}
+              style={{ paddingBottom: "4px", flexShrink: 0 }}
+            >
               <div style={{
                 display: "flex", alignItems: "center", gap: "8px",
                 marginBottom: "14px",
@@ -655,11 +768,11 @@ export default function Home() {
                   Written in pure Rust
                 </span>
                 <span style={{ color: C.text3, fontSize: "13.5px", fontFamily: "var(--font-geist-sans)" }}>
-                  · cargo install trx →
+                  · cargo install trx
                 </span>
               </div>
               <div style={{ display: "flex", gap: "8px" }}>
-                <a href="#install" style={{
+                <Link href="/#install" style={{
                   background: C.text, color: C.bg,
                   padding: "9px 18px", borderRadius: "7px",
                   fontSize: "14px", fontWeight: "600", textDecoration: "none",
@@ -667,7 +780,7 @@ export default function Home() {
                   display: "inline-flex", alignItems: "center", gap: "6px",
                 }}>
                   Get started
-                </a>
+                </Link>
                 <a href="https://github.com" target="_blank" rel="noopener noreferrer" style={{
                   background: C.surface, boxShadow: S.ring,
                   color: C.text2,
@@ -679,11 +792,17 @@ export default function Home() {
                   <IconGithub size={13} /> View source
                 </a>
               </div>
-            </div>
+            </motion.div>
           </div>
 
           {/* Wide terminal mockup */}
-          <HeroTerminal />
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease, delay: 0.22 }}
+          >
+            <HeroTerminal />
+          </motion.div>
         </Container>
       </section>
 
@@ -692,7 +811,7 @@ export default function Home() {
         <Container style={{ padding: "96px 40px" }}>
           <div style={{ boxShadow: "0 1px 0 rgba(255,255,255,0.05)", marginBottom: "72px" }} />
 
-          <div style={{ marginBottom: "48px" }}>
+          <FadeUp style={{ marginBottom: "48px" }}>
             <Label>Features</Label>
             <h2 style={{
               fontSize: "clamp(26px, 3vw, 38px)", fontWeight: "700",
@@ -701,30 +820,38 @@ export default function Home() {
             }}>
               Built for speed.<br />Designed for focus.
             </h2>
-          </div>
+          </FadeUp>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(248px, 1fr))", gap: "12px" }}>
-            <FeatureCard
-              icon={<IconSearch />}
-              title="Fuzzy Search"
-              desc="50ms debounced live search across all packages. Scoring-based fuzzy matching finds what you mean, not just exact strings."
-            />
-            <FeatureCard
-              icon={<IconBox />}
-              title="Multi-Manager"
-              desc="One interface for Homebrew, Pacman, AUR via yay, and APT. Auto-detected at launch — no config required."
-            />
-            <FeatureCard
-              icon={<IconLayers />}
-              title="Batch Operations"
-              desc="Select multiple packages with Space, then install or remove in one shot. No repeated confirmations."
-            />
-            <FeatureCard
-              icon={<IconZap />}
-              title="Zero Runtime"
-              desc="Pure Rust, no async runtime. Concurrent search via OS threads and mpsc channels. Cold starts in milliseconds."
-            />
-          </div>
+          <StaggerInView style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(248px, 1fr))", gap: "12px" }}>
+            <motion.div variants={itemVariants}>
+              <FeatureCard
+                icon={<IconSearch />}
+                title="Fuzzy Search"
+                desc="50ms debounced live search across all packages. Scoring-based fuzzy matching finds what you mean, not just exact strings."
+              />
+            </motion.div>
+            <motion.div variants={itemVariants}>
+              <FeatureCard
+                icon={<IconBox />}
+                title="Multi-Manager"
+                desc="One interface for Homebrew, Pacman, AUR via yay, and APT. Auto-detected at launch; no config required."
+              />
+            </motion.div>
+            <motion.div variants={itemVariants}>
+              <FeatureCard
+                icon={<IconLayers />}
+                title="Batch Operations"
+                desc="Select multiple packages with Space, then install or remove in one shot. No repeated confirmations."
+              />
+            </motion.div>
+            <motion.div variants={itemVariants}>
+              <FeatureCard
+                icon={<IconZap />}
+                title="Zero Runtime"
+                desc="Pure Rust, no async runtime. Concurrent search via OS threads and mpsc channels. Cold starts in milliseconds."
+              />
+            </motion.div>
+          </StaggerInView>
         </Container>
       </section>
 
@@ -733,7 +860,7 @@ export default function Home() {
         <div style={{ boxShadow: "0 1px 0 rgba(255,255,255,0.04)" }} />
         <div style={{ background: C.surface }}>
           <Container style={{ padding: "96px 40px" }}>
-            <div style={{ marginBottom: "52px" }}>
+            <FadeUp style={{ marginBottom: "52px" }}>
               <Label>Get started</Label>
               <h2 style={{
                 fontSize: "clamp(26px, 3vw, 38px)", fontWeight: "700",
@@ -742,17 +869,28 @@ export default function Home() {
               }}>
                 Up and running<br />in 30 seconds.
               </h2>
-            </div>
+            </FadeUp>
 
-            <div style={{ display: "flex", gap: "40px", alignItems: "flex-start", flexWrap: "wrap", marginBottom: "56px" }}>
-              <Step num="01" title="Install TRX" code="cargo install trx" />
-              <div style={{ alignSelf: "center", paddingTop: "18px", color: C.text3, fontSize: "18px", flexShrink: 0 }}>→</div>
-              <Step num="02" title="Launch" code="trx" />
-              <div style={{ alignSelf: "center", paddingTop: "18px", color: C.text3, fontSize: "18px", flexShrink: 0 }}>→</div>
-              <Step num="03" title="Search and install" code="e → type → space → i" />
-            </div>
+            <StaggerInView style={{ display: "flex", gap: "40px", alignItems: "flex-start", flexWrap: "wrap", marginBottom: "56px" }}>
+              <motion.div variants={itemVariants} style={{ flex: 1, minWidth: "190px" }}>
+                <Step num="01" title="Install TRX" code="cargo install trx" />
+              </motion.div>
+              <motion.div variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { duration: 0.4, delay: 0.15 } } }}>
+                <StepFlowConnector />
+              </motion.div>
+              <motion.div variants={itemVariants} style={{ flex: 1, minWidth: "190px" }}>
+                <Step num="02" title="Launch" code="trx" />
+              </motion.div>
+              <motion.div variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { duration: 0.4, delay: 0.3 } } }}>
+                <StepFlowConnector />
+              </motion.div>
+              <motion.div variants={itemVariants} style={{ flex: 1, minWidth: "190px" }}>
+                <Step num="03" title="Search and install" code="e, type, space, i" />
+              </motion.div>
+            </StaggerInView>
 
             {/* Keybindings */}
+            <FadeUp>
             <div style={{
               background: C.surface2, boxShadow: S.card, borderRadius: "10px",
               padding: "22px 26px",
@@ -785,6 +923,7 @@ export default function Home() {
                 </div>
               ))}
             </div>
+            </FadeUp>
           </Container>
         </div>
         <div style={{ boxShadow: "0 1px 0 rgba(255,255,255,0.04)" }} />
@@ -795,7 +934,7 @@ export default function Home() {
         <Container style={{ padding: "96px 40px" }}>
           <div style={{ boxShadow: "0 1px 0 rgba(255,255,255,0.04)", marginBottom: "72px" }} />
 
-          <div style={{
+          <FadeUp style={{
             display: "flex", justifyContent: "space-between",
             alignItems: "flex-end", flexWrap: "wrap", gap: "24px", marginBottom: "48px",
           }}>
@@ -815,13 +954,19 @@ export default function Home() {
             }}>
               Package manager auto-detected at launch. Zero configuration. Just run <code style={{ fontFamily: "var(--font-geist-mono)", color: C.text3 }}>trx</code>.
             </p>
-          </div>
+          </FadeUp>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "12px" }}>
-            <PlatformBadge icon={<IconApple />}  name="macOS"           manager="via Homebrew (brew)" />
-            <PlatformBadge icon={<IconArch />}   name="Arch Linux"      manager="via Pacman + AUR (yay)" />
-            <PlatformBadge icon={<IconLinux />}  name="Debian / Ubuntu" manager="via APT (apt)" />
-          </div>
+          <StaggerInView style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "12px" }}>
+            <motion.div variants={itemVariants}>
+              <PlatformBadge icon={<IconApple />}  name="macOS"           manager="via Homebrew (brew)" />
+            </motion.div>
+            <motion.div variants={itemVariants}>
+              <PlatformBadge icon={<IconArch />}   name="Arch Linux"      manager="via Pacman + AUR (yay)" />
+            </motion.div>
+            <motion.div variants={itemVariants}>
+              <PlatformBadge icon={<IconLinux />}  name="Debian / Ubuntu" manager="via APT (apt)" />
+            </motion.div>
+          </StaggerInView>
         </Container>
       </section>
 
@@ -851,19 +996,30 @@ export default function Home() {
 
           <div style={{ display: "flex", gap: "24px", alignItems: "center" }}>
             {[
-              { label: "GitHub", href: "https://github.com" },
-              { label: "Issues", href: "https://github.com" },
-              { label: "Docs",   href: "#" },
-            ].map(link => (
-              <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer"
-                style={{
-                  color: C.text3, fontSize: "13px", textDecoration: "none",
-                  fontFamily: "var(--font-geist-sans)", transition: "color 0.15s",
-                }}
-                onMouseEnter={e => (e.currentTarget.style.color = C.text2)}
-                onMouseLeave={e => (e.currentTarget.style.color = C.text3)}
-              >{link.label}</a>
-            ))}
+              { label: "GitHub", href: "https://github.com", external: true },
+              { label: "Issues", href: "https://github.com", external: true },
+              { label: "Docs", href: "/", external: false },
+            ].map(link =>
+              link.external ? (
+                <a key={link.label} href={link.href} target="_blank" rel="noopener noreferrer"
+                  style={{
+                    color: C.text3, fontSize: "13px", textDecoration: "none",
+                    fontFamily: "var(--font-geist-sans)", transition: "color 0.15s",
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.color = C.text2)}
+                  onMouseLeave={e => (e.currentTarget.style.color = C.text3)}
+                >{link.label}</a>
+              ) : (
+                <Link key={link.label} href={link.href}
+                  style={{
+                    color: C.text3, fontSize: "13px", textDecoration: "none",
+                    fontFamily: "var(--font-geist-sans)", transition: "color 0.15s",
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.color = C.text2)}
+                  onMouseLeave={e => (e.currentTarget.style.color = C.text3)}
+                >{link.label}</Link>
+              )
+            )}
           </div>
 
           <div style={{ color: C.text3, fontSize: "12px", fontFamily: "var(--font-geist-mono)" }}>

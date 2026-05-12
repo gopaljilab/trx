@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -13,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TRX — Terminal Package Manager",
+  title: "TRX - Terminal Package Manager",
   description:
-    "A blazing-fast TUI package manager written in Rust. Fuzzy search, install, and manage packages across macOS, Arch Linux, and Debian/Ubuntu — without leaving your terminal.",
+    "A blazing-fast TUI package manager written in Rust. Fuzzy search, install, and manage packages across macOS, Arch Linux, and Debian/Ubuntu, without leaving your terminal.",
 };
 
 export default function RootLayout({
@@ -28,7 +29,9 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <Suspense fallback={null}>{children}</Suspense>
+      </body>
     </html>
   );
 }

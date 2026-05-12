@@ -1,0 +1,9 @@
+<svg width="160" height="48" viewBox="0 0 160 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Icon mark: rounded square with terminal prompt -->
+  <rect width="48" height="48" rx="10" fill="#171717"/>
+  <path d="M13 18L21 24L13 30" stroke="#ebebeb" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="24" y="28.5" width="11" height="2.5" rx="1.25" fill="#878787"/>
+
+  <!-- Wordmark: trx -->
+  <text x="62" y="33" font-family="'SF Mono', 'Fira Code', 'Courier New', monospace" font-size="24" font-weight="700" letter-spacing="-1" fill="#ebebeb">trx</text>
+</svg>
