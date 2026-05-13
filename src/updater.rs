@@ -33,9 +33,9 @@ pub fn check_for_updates() -> Option<(String, String)> {
     if is_newer(latest_version, current_version) {
         // Find asset for current platform
         let target_asset_name = match (env::consts::OS, env::consts::ARCH) {
-            ("linux", "x86_64") => "trx-linux-x86_64",
-            ("macos", "x86_64") => "trx-macos-x86_64",
-            ("macos", "aarch64") => "trx-macos-arm64",
+            ("linux", "x86_64") => "trx-linux-x86_64.tar.gz",
+            ("macos", "x86_64") => "trx-macos-x86_64.tar.gz",
+            ("macos", "aarch64") => "trx-macos-aarch64.tar.gz",
             _ => return None,
         };
 
@@ -72,18 +72,36 @@ pub fn update_self(url: &str) -> Result<(), Box<dyn std::error::Error>> {
         .user_agent(USER_AGENT)
         .build()?;
 
-    let mut response = client.get(url).send()?;
-    let mut dest = tempfile::NamedTempFile::new()?;
-    response.copy_to(&mut dest)?;
+    let response = client.get(url).send()?;
+    let bytes = response.bytes()?;
 
     let current_exe = env::current_exe()?;
     let backup = current_exe.with_extension("old");
 
+    // Extract binary from tar.gz
+    let tar_gz = flate2::read::GzDecoder::new(&bytes[..]);
+    let mut archive = tar::Archive::new(tar_gz);
+
+    let mut new_binary_content = Vec::new();
+    for entry in archive.entries()? {
+        let mut entry = entry?;
+        let path = entry.path()?;
+        if path.to_str() == Some("trx") || path.to_str() == Some("trx.exe") {
+            use std::io::Read;
+            entry.read_to_end(&mut new_binary_content)?;
+            break;
+        }
+    }
+
+    if new_binary_content.is_empty() {
+        return Err("Could not find binary in release archive".into());
+    }
+
     // Rename current to backup
     fs::rename(&current_exe, &backup)?;
 
-    // Copy new to current
-    fs::copy(dest.path(), &current_exe)?;
+    // Write new binary
+    fs::write(&current_exe, new_binary_content)?;
 
     // Make executable
     #[cfg(unix)]
@@ -95,9 +113,6 @@ pub fn update_self(url: &str) -> Result<(), Box<dyn std::error::Error>> {
     }
 
     println!("Update successful! Please restart trx.");
-
-    // Optional: cleanup backup
-    // let _ = fs::remove_file(backup);
 
     Ok(())
 }
