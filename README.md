@@ -27,6 +27,7 @@ Each backend implements a common trait allowing TRX to issue abstract actions (i
 * Fully non-blocking event loop using `tokio`  
 * Unified command model for package managers with pluggable backend architecture  
 * In-built fuzzy matcher optimized for substring scoring and ranking  
+* **Self-updating mechanism** – Checks for new releases on startup and updates automatically
 * Stateless backend operations executed via system calls with structured output parsing  
 * Extensible design suitable for adding new package managers without modifying the core engine  
 

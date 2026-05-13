@@ -2,6 +2,7 @@ mod config;
 mod fuzzy;
 mod managers;
 mod ui;
+mod updater;
 
 use color_eyre::Result;
 use managers::Package;
@@ -45,6 +46,23 @@ fn main() -> Result<()> {
             }
             _ => {}
         }
+    }
+
+    // Check for updates
+    println!("Checking for updates...");
+    if let Some((version, url)) = updater::check_for_updates() {
+        println!("New version found: {}. Updating...", version);
+        match updater::update_self(&url) {
+            Ok(_) => {
+                println!("Update complete. Please restart trx.");
+                return Ok(());
+            }
+            Err(e) => {
+                eprintln!("Failed to update: {}. Continuing with current version...", e);
+            }
+        }
+    } else {
+        println!("Already up to date.");
     }
 
     color_eyre::install()?;
