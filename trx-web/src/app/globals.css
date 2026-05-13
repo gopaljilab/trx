@@ -20,6 +20,10 @@
 }
 
 @layer base {
+  button, a, [role="button"] {
+    cursor: pointer;
+  }
+
   html {
     scroll-padding-top: 5rem;
   }
