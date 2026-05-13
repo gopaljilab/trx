@@ -26,7 +26,7 @@ export function CopyIconButton({
       onClick={() => void onCopy()}
       aria-label={copied ? copiedLabel : idleLabel}
       className={[
-        "inline-flex shrink-0 items-center justify-center rounded-md border-none p-0 text-[#878787] transition",
+        "inline-flex shrink-0 cursor-pointer items-center justify-center rounded-md border-none p-0 text-[#878787] transition",
         "[&_svg]:block [&_svg]:shrink-0",
         sizeClass,
         "hover:text-[#ebebeb] hover:brightness-105 active:scale-[0.97]",
