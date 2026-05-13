@@ -20,7 +20,7 @@ struct Asset {
 pub fn check_for_updates() -> Option<(String, String)> {
     let client = reqwest::blocking::Client::builder()
         .user_agent(USER_AGENT)
-        .timeout(std::time::Duration::from_secs(3))
+        .timeout(std::time::Duration::from_secs(2))
         .build()
         .ok()?;
 
@@ -39,8 +39,14 @@ pub fn check_for_updates() -> Option<(String, String)> {
             _ => return None,
         };
 
-        let asset = release.assets.iter().find(|a| a.name == target_asset_name)?;
-        Some((latest_version.to_string(), asset.browser_download_url.clone()))
+        let asset = release
+            .assets
+            .iter()
+            .find(|a| a.name == target_asset_name)?;
+        Some((
+            latest_version.to_string(),
+            asset.browser_download_url.clone(),
+        ))
     } else {
         None
     }
@@ -51,8 +57,12 @@ fn is_newer(latest: &str, current: &str) -> bool {
     let current_parts: Vec<u32> = current.split('.').filter_map(|s| s.parse().ok()).collect();
 
     for (l, c) in latest_parts.iter().zip(current_parts.iter()) {
-        if l > c { return true; }
-        if l < c { return false; }
+        if l > c {
+            return true;
+        }
+        if l < c {
+            return false;
+        }
     }
     latest_parts.len() > current_parts.len()
 }
@@ -71,10 +81,10 @@ pub fn update_self(url: &str) -> Result<(), Box<dyn std::error::Error>> {
 
     // Rename current to backup
     fs::rename(&current_exe, &backup)?;
-    
+
     // Copy new to current
     fs::copy(dest.path(), &current_exe)?;
-    
+
     // Make executable
     #[cfg(unix)]
     {
@@ -85,7 +95,7 @@ pub fn update_self(url: &str) -> Result<(), Box<dyn std::error::Error>> {
     }
 
     println!("Update successful! Please restart trx.");
-    
+
     // Optional: cleanup backup
     // let _ = fs::remove_file(backup);
 
