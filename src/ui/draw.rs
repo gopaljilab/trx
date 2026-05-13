@@ -1,9 +1,9 @@
 use ratatui::{
     Frame,
-    layout::{Constraint, Layout, Position, Rect},
+    layout::{Constraint, Layout, Position, Rect, Direction},
     style::{Color, Modifier, Style, Stylize},
     text::{Line, Span, Text},
-    widgets::{Block, Clear, List, ListItem, Paragraph, Wrap},
+    widgets::{Block, List, ListItem, Paragraph, Wrap, Clear, BorderType},
 };
 
 use crate::ui::{app::App, input::InputMode};
@@ -25,16 +25,58 @@ fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
     .split(popup_layout[1])[1]
 }
 
-/// draw_ui updated to accept a mutable App reference so it can use App.list_state.
+const SPINNERS: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+
 pub fn draw_ui(frame: &mut Frame, app: &mut App) {
     let vertical_root = Layout::vertical([
-        Constraint::Length(1), // Help
+        Constraint::Length(1), // Help header
         Constraint::Length(3), // Tabs
         Constraint::Min(1),    // Content
+        Constraint::Length(1), // Status Bar
     ]);
-    let [help_area_root, tabs_area, content_area] = vertical_root.areas(frame.area());
+    let [help_area_root, tabs_area, content_area, status_area] = vertical_root.areas(frame.area());
 
-    // Help area
+    draw_help_header(frame, app, help_area_root);
+    draw_tabs(frame, app, tabs_area);
+
+    // Responsive layout for content area
+    let is_wide = content_area.width >= 100;
+    let constraints = if is_wide {
+        [Constraint::Percentage(50), Constraint::Percentage(50)]
+    } else {
+        [Constraint::Percentage(60), Constraint::Percentage(40)]
+    };
+    let direction = if is_wide { Direction::Horizontal } else { Direction::Vertical };
+
+    let content_layout = Layout::new(direction, constraints).split(content_area);
+    let search_area = content_layout[0];
+    let details_area = content_layout[1];
+
+    let (input_area, list_area) = if let crate::ui::app::Tab::Search = app.current_tab {
+        let vertical_search = Layout::vertical([
+            Constraint::Length(3), // Input
+            Constraint::Min(1),    // List
+        ]);
+        let [i, l] = vertical_search.areas(search_area);
+        (Some(i), l)
+    } else {
+        (None, search_area)
+    };
+
+    if let Some(i_area) = input_area {
+        draw_search_input(frame, app, i_area);
+    }
+
+    draw_package_list(frame, app, list_area);
+    draw_details(frame, app, details_area);
+    draw_status_bar(frame, app, status_area);
+
+    if app.show_help {
+        draw_help_overlay(frame, app);
+    }
+}
+
+fn draw_help_header(frame: &mut Frame, app: &App, area: Rect) {
     let (help_lines, style) = match app.input_mode {
         InputMode::Normal => (
             vec![
@@ -44,6 +86,8 @@ pub fn draw_ui(frame: &mut Frame, app: &mut App) {
                 "e".bold(),
                 " to edit, ".into(),
                 "Tab".bold(),
+                "/".into(),
+                "Shift+Tab".bold(),
                 " to switch tabs, ".into(),
                 "?".bold(),
                 " for help".into(),
@@ -63,9 +107,10 @@ pub fn draw_ui(frame: &mut Frame, app: &mut App) {
     };
 
     let text = Text::from(Line::from(help_lines)).patch_style(style);
-    frame.render_widget(Paragraph::new(text), help_area_root);
+    frame.render_widget(Paragraph::new(text), area);
+}
 
-    // Tabs
+fn draw_tabs(frame: &mut Frame, app: &App, area: Rect) {
     let tab_titles = vec!["Search", "Installed", "Updates"];
     let tabs = ratatui::widgets::Tabs::new(tab_titles)
         .block(Block::bordered().title("Views"))
@@ -74,52 +119,46 @@ pub fn draw_ui(frame: &mut Frame, app: &mut App) {
             crate::ui::app::Tab::Installed => 1,
             crate::ui::app::Tab::Updates => 2,
         })
-        .highlight_style(
-            Style::default()
-                .fg(Color::Yellow)
-                .add_modifier(Modifier::BOLD),
-        );
-    frame.render_widget(tabs, tabs_area);
+        .highlight_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD));
+    frame.render_widget(tabs, area);
+}
 
-    let horizontal = Layout::horizontal([Constraint::Percentage(50), Constraint::Percentage(50)]);
-    let [search_area, details_area] = horizontal.areas(content_area);
-
-    let (input_area, list_area) = if let crate::ui::app::Tab::Search = app.current_tab {
-        let vertical_search = Layout::vertical([
-            Constraint::Length(3), // Input
-            Constraint::Min(1),    // List
-        ]);
-        let [i, l] = vertical_search.areas(search_area);
-        (Some(i), l)
+fn draw_search_input(frame: &mut Frame, app: &App, area: Rect) {
+    let spinner = if app.loading {
+        SPINNERS[(app.spinner_tick as usize / 5) % SPINNERS.len()]
     } else {
-        (None, search_area)
+        ""
     };
 
     let search_title = match app.current_tab {
         crate::ui::app::Tab::Search => {
             if app.loading {
-                "Search [Searching...]"
+                format!("Search [{}]", spinner)
             } else {
-                "Search"
+                "Search".to_string()
             }
         }
-        crate::ui::app::Tab::Installed => "Installed Packages",
-        crate::ui::app::Tab::Updates => "Available Updates",
+        crate::ui::app::Tab::Installed => "Installed Packages".to_string(),
+        crate::ui::app::Tab::Updates => "Available Updates".to_string(),
     };
 
-    // Only show input in Search tab
-    if let Some(i_area) = input_area {
-        let input = Paragraph::new(app.input.as_str())
-            .style(match app.input_mode {
-                InputMode::Normal => Style::default(),
-                InputMode::Editing => Style::default().fg(Color::Yellow),
-            })
-            .block(Block::bordered().title(search_title));
-        frame.render_widget(input, i_area);
+    let input = Paragraph::new(app.input.as_str())
+        .style(match app.input_mode {
+            InputMode::Normal => Style::default(),
+            InputMode::Editing => Style::default().fg(Color::Yellow),
+        })
+        .block(Block::bordered().title(search_title));
+    frame.render_widget(input, area);
+
+    if let InputMode::Editing = app.input_mode {
+        frame.set_cursor_position(Position::new(
+            area.x + app.character_index as u16 + 1,
+            area.y + 1,
+        ));
     }
+}
 
-    // Build items (use packages if available; otherwise, fallback to messages)
-
+fn draw_package_list(frame: &mut Frame, app: &mut App, area: Rect) {
     let items: Vec<ListItem> = if app.packages.is_empty() {
         app.messages
             .iter()
@@ -132,17 +171,12 @@ pub fn draw_ui(frame: &mut Frame, app: &mut App) {
             .enumerate()
             .map(|(_i, p)| {
                 let parts: Vec<&str> = p.name.split('/').collect();
-
                 let name = parts.last().unwrap();
-
                 let pkg_name = if name.len() > 16 {
-                    let slice = &name[..14]; // now the slice lives long enough
-                    format!("{}...", slice)
+                    format!("{}...", &name[..14])
                 } else {
                     name.to_string()
                 };
-                // correct name
-                //let provider = if parts.len() > 1 { parts[0] } else { "pacman" };
 
                 let provider = format!("{}", &p.provider);
                 let version = if p.version.len() > 12 {
@@ -188,22 +222,36 @@ pub fn draw_ui(frame: &mut Frame, app: &mut App) {
             .collect::<Vec<ListItem>>()
     };
 
-    // Create a List with a highlight style and symbol
-    let list_title = format!("Packages ({})", app.manager.name());
+    let spinner = if app.loading {
+        SPINNERS[(app.spinner_tick as usize / 5) % SPINNERS.len()]
+    } else {
+        ""
+    };
+
+    let list_title = if app.loading && !matches!(app.current_tab, crate::ui::app::Tab::Search) {
+        format!("Packages ({}) [{}]", app.manager.name(), spinner)
+    } else {
+        format!("Packages ({})", app.manager.name())
+    };
+
     let list = List::new(items)
         .block(Block::bordered().title(list_title))
         .highlight_style(Style::default().bg(Color::Blue).fg(Color::White))
         .highlight_symbol("» ");
 
-    frame.render_stateful_widget(list, list_area, &mut app.list_state);
+    frame.render_stateful_widget(list, area, &mut app.list_state);
+}
+
+fn draw_details(frame: &mut Frame, app: &App, area: Rect) {
     let mut details_lines: Vec<Line> = Vec::new();
+    let spinner = SPINNERS[(app.spinner_tick as usize / 5) % SPINNERS.len()];
 
     match &app.details_state {
         crate::ui::app::DetailsState::Empty => {
             details_lines.push(Line::from("No package selected"));
         }
         crate::ui::app::DetailsState::Loading => {
-            details_lines.push(Line::from("Loading details..."));
+            details_lines.push(Line::from(format!("Loading details... {}", spinner)));
         }
         crate::ui::app::DetailsState::Error(err) => {
             details_lines.push(Line::from(vec![
@@ -235,7 +283,6 @@ pub fn draw_ui(frame: &mut Frame, app: &mut App) {
                     ]));
                 }
 
-                // Remaining lines => indent + rest of value
                 for line in value_wrapped.iter().skip(1) {
                     details_lines.push(Line::from(format!("{}{}", indent, line)));
                 }
@@ -243,86 +290,60 @@ pub fn draw_ui(frame: &mut Frame, app: &mut App) {
         }
     }
 
-    // Now render
     frame.render_widget(
         Paragraph::new(details_lines)
             .wrap(Wrap { trim: false })
             .block(Block::bordered().title("Details")),
-        details_area,
+        area,
     );
+}
 
-    if let InputMode::Editing = app.input_mode {
-        if let Some(i_area) = input_area {
-            frame.set_cursor_position(Position::new(
-                i_area.x + app.character_index as u16 + 1,
-                i_area.y + 1,
-            ));
-        }
-    }
+fn draw_status_bar(frame: &mut Frame, app: &App, area: Rect) {
+    let mode_str = match app.input_mode {
+        InputMode::Normal => "NORMAL",
+        InputMode::Editing => "EDITING",
+    };
+    
+    let selected_count = app.selected_names.len();
 
-    if app.show_help {
-        let area = centered_rect(60, 40, frame.area());
-        frame.render_widget(Clear, area); // This clears out the background
-        let help_text = vec![
-            Line::from(vec![Span::styled(
-                "Keybindings",
-                Style::default().add_modifier(Modifier::BOLD),
-            )]),
-            Line::from(""),
-            Line::from(vec![
-                Span::styled("q", Style::default().fg(Color::Yellow)),
-                Span::raw(": Quit"),
-            ]),
-            Line::from(vec![
-                Span::styled("e", Style::default().fg(Color::Yellow)),
-                Span::raw(": Edit Search (Search tab only)"),
-            ]),
-            Line::from(vec![
-                Span::styled("Esc", Style::default().fg(Color::Yellow)),
-                Span::raw(": Normal Mode"),
-            ]),
-            Line::from(vec![
-                Span::styled("Tab", Style::default().fg(Color::Yellow)),
-                Span::raw(": Switch Tabs"),
-            ]),
-            Line::from(vec![
-                Span::styled("Space", Style::default().fg(Color::Yellow)),
-                Span::raw(": Select/Unselect"),
-            ]),
-            Line::from(vec![
-                Span::styled("i", Style::default().fg(Color::Yellow)),
-                Span::raw(": Install Selected"),
-            ]),
-            Line::from(vec![
-                Span::styled("x", Style::default().fg(Color::Yellow)),
-                Span::raw(": Remove Selected"),
-            ]),
-            Line::from(vec![
-                Span::styled("U", Style::default().fg(Color::Yellow)),
-                Span::raw(": Full System Upgrade"),
-            ]),
-            Line::from(vec![
-                Span::styled("R", Style::default().fg(Color::Yellow)),
-                Span::raw(": Refresh Databases"),
-            ]),
-            Line::from(vec![
-                Span::styled("j / Down", Style::default().fg(Color::Yellow)),
-                Span::raw(": Move Down"),
-            ]),
-            Line::from(vec![
-                Span::styled("k / Up", Style::default().fg(Color::Yellow)),
-                Span::raw(": Move Up"),
-            ]),
-            Line::from(vec![
-                Span::styled("?", Style::default().fg(Color::Yellow)),
-                Span::raw(": Toggle Help"),
-            ]),
-        ];
-        frame.render_widget(
-            Paragraph::new(help_text)
-                .block(Block::bordered().title("Help"))
-                .wrap(Wrap { trim: true }),
-            area,
-        );
-    }
+    let status_line = Line::from(vec![
+        Span::styled(format!(" {} ", mode_str), Style::default().bg(Color::Blue).fg(Color::Black).add_modifier(Modifier::BOLD)),
+        Span::raw(" | "),
+        Span::styled(format!("Mgr: {} ", app.manager.name()), Style::default().fg(Color::Green)),
+        Span::raw("| "),
+        Span::styled(format!("Selected: {} ", selected_count), Style::default().fg(Color::Yellow)),
+        Span::raw("| "),
+        Span::styled("?: Help | i: Install | x: Remove | U: Upgrade", Style::default().fg(Color::DarkGray)),
+    ]);
+
+    frame.render_widget(Paragraph::new(status_line), area);
+}
+
+fn draw_help_overlay(frame: &mut Frame, _app: &App) {
+    let area = centered_rect(60, 50, frame.area());
+    frame.render_widget(Clear, area);
+    let help_text = vec![
+        Line::from(vec![Span::styled("Keybindings", Style::default().add_modifier(Modifier::BOLD))]),
+        Line::from(""),
+        Line::from(vec![Span::styled("q", Style::default().fg(Color::Yellow)), Span::raw(": Quit")]),
+        Line::from(vec![Span::styled("e", Style::default().fg(Color::Yellow)), Span::raw(": Edit Search (Search tab only)")]),
+        Line::from(vec![Span::styled("Esc", Style::default().fg(Color::Yellow)), Span::raw(": Normal Mode")]),
+        Line::from(vec![Span::styled("Tab / Shift+Tab", Style::default().fg(Color::Yellow)), Span::raw(": Switch Tabs")]),
+        Line::from(vec![Span::styled("Space", Style::default().fg(Color::Yellow)), Span::raw(": Select/Unselect")]),
+        Line::from(vec![Span::styled("i", Style::default().fg(Color::Yellow)), Span::raw(": Install Selected")]),
+        Line::from(vec![Span::styled("x", Style::default().fg(Color::Yellow)), Span::raw(": Remove Selected")]),
+        Line::from(vec![Span::styled("U", Style::default().fg(Color::Yellow)), Span::raw(": Full System Upgrade")]),
+        Line::from(vec![Span::styled("R", Style::default().fg(Color::Yellow)), Span::raw(": Refresh Databases")]),
+        Line::from(vec![Span::styled("Up / Down / j / k", Style::default().fg(Color::Yellow)), Span::raw(": Move")]),
+        Line::from(vec![Span::styled("PageUp / PageDown", Style::default().fg(Color::Yellow)), Span::raw(": Fast Move")]),
+        Line::from(vec![Span::styled("Home / End", Style::default().fg(Color::Yellow)), Span::raw(": Jump to top/bottom")]),
+        Line::from(vec![Span::styled("Scroll Wheel", Style::default().fg(Color::Yellow)), Span::raw(": Move")]),
+        Line::from(vec![Span::styled("?", Style::default().fg(Color::Yellow)), Span::raw(": Toggle Help")]),
+    ];
+    frame.render_widget(
+        Paragraph::new(help_text)
+            .block(Block::bordered().title("Help").border_type(BorderType::Double))
+            .wrap(Wrap { trim: true }),
+        area,
+    );
 }

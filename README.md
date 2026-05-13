@@ -37,12 +37,13 @@ No daemon. No config file. Just run `trx`.
 
 ## Features
 
-- **Fuzzy search**: 50ms debounced live search with scoring-based ranking
-- **Multi-manager**: Homebrew, Pacman, AUR (via yay), and APT, auto-detected at launch
-- **Batch operations**: select multiple packages with `space`, install or remove in one shot
-- **Side-by-side detail panel**: version, size, dependencies shown instantly as you navigate
-- **Zero overhead**: pure Rust, OS threads + `mpsc` channels, no async runtime
-- **Three tabs**: Search, Installed, Updates all in one interface
+* Renderer built on `ratatui` with deterministic layout and minimal redraw overhead  
+* Fully non-blocking event loop using `tokio`  
+* Unified command model for package managers with pluggable backend architecture  
+* In-built fuzzy matcher optimized for substring scoring and ranking  
+* **Self-updating mechanism** – Checks for new releases on startup and updates automatically
+* Stateless backend operations executed via system calls with structured output parsing  
+* Extensible design suitable for adding new package managers without modifying the core engine  
 
 ---
 

@@ -2,11 +2,13 @@ mod config;
 mod fuzzy;
 mod managers;
 mod ui;
+mod updater;
 
 use color_eyre::Result;
 use managers::Package;
 use ratatui::crossterm::{
     cursor::{Hide, Show},
+    event::{DisableMouseCapture, EnableMouseCapture},
     execute,
     terminal::{self, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -32,6 +34,7 @@ fn main() -> Result<()> {
                 println!("\nKeybindings (inside TUI):");
                 println!("  q                Quit");
                 println!("  Tab              Switch between Search, Installed, and Updates tabs");
+                println!("  Shift+Tab        Switch backwards between tabs");
                 println!("  e                Edit search query (Search tab)");
                 println!("  Space            Select/unselect packages");
                 println!("  i                Install selected packages");
@@ -45,13 +48,30 @@ fn main() -> Result<()> {
         }
     }
 
+    // Check for updates
+    println!("Checking for updates...");
+    if let Some((version, url)) = updater::check_for_updates() {
+        println!("New version found: {}. Updating...", version);
+        match updater::update_self(&url) {
+            Ok(_) => {
+                println!("Update complete. Please restart trx.");
+                return Ok(());
+            }
+            Err(e) => {
+                eprintln!("Failed to update: {}. Continuing with current version...", e);
+            }
+        }
+    } else {
+        println!("Already up to date.");
+    }
+
     color_eyre::install()?;
     let mut terminal = init();
-    let (result_tx, result_rx): (
-        mpsc::Sender<(String, Vec<Package>)>,
-        mpsc::Receiver<(String, Vec<Package>)>,
-    ) = mpsc::channel();
+    execute!(std::io::stdout(), EnableMouseCapture)?;
+    let (result_tx, result_rx): (mpsc::Sender<(String, Vec<Package>)>, mpsc::Receiver<(String, Vec<Package>)>) =
+        mpsc::channel();
     let app_result = App::new(result_tx.clone(), result_rx).run(&mut terminal);
+    execute!(std::io::stdout(), DisableMouseCapture)?;
     restore();
     app_result
 }

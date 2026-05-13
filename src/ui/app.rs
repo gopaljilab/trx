@@ -45,6 +45,7 @@ pub struct App {
     pub details_state: DetailsState,
     pub last_selected: usize,
     pub show_help: bool,
+    pub spinner_tick: u8,
     pub manager: Arc<Box<dyn managers::PackageManager>>,
     result_tx: Sender<(String, Vec<Package>)>,
     result_rx: Receiver<(String, Vec<Package>)>,
@@ -83,6 +84,7 @@ impl App {
             details_state: DetailsState::Empty,
             last_selected: usize::MAX,
             show_help: false,
+            spinner_tick: 0,
             manager,
             result_tx,
             result_rx,
@@ -207,6 +209,20 @@ impl App {
             Tab::Updates => Tab::Search,
         };
 
+        self.reset_tab_state();
+    }
+
+    fn switch_tab_previous(&mut self) {
+        self.current_tab = match self.current_tab {
+            Tab::Search => Tab::Updates,
+            Tab::Installed => Tab::Search,
+            Tab::Updates => Tab::Installed,
+        };
+
+        self.reset_tab_state();
+    }
+
+    fn reset_tab_state(&mut self) {
         self.packages.clear();
         self.messages.clear();
         self.checked.clear();
@@ -272,6 +288,10 @@ impl App {
                 self.check_and_execute_search();
             }
 
+            if self.loading || matches!(self.details_state, DetailsState::Loading) {
+                self.spinner_tick = self.spinner_tick.wrapping_add(1);
+            }
+
             // check search results
             while let Ok((q, pkgs)) = self.result_rx.try_recv() {
                 let is_current_tab_result = match self.current_tab {
@@ -317,9 +337,16 @@ impl App {
             terminal.draw(|frame| draw_ui(frame, &mut self))?;
 
             if event::poll(std::time::Duration::from_millis(10))? {
-                if let Event::Key(key) = event::read()? {
-                    match self.input_mode {
-                        InputMode::Normal if key.kind == KeyEventKind::Press => match key.code {
+                let ev = event::read()?;
+                match ev {
+                    Event::Key(key) => {
+                        match self.input_mode {
+                            InputMode::Normal if key.kind == KeyEventKind::Press => match key.code {
+                            KeyCode::BackTab => {
+                                self.switch_tab_previous();
+                                self.last_selected = usize::MAX;
+                                self.trigger_details_fetch();
+                            }
                             KeyCode::Tab => {
                                 self.switch_tab();
                                 self.last_selected = usize::MAX;
@@ -387,6 +414,36 @@ impl App {
                                     self.trigger_details_fetch();
                                 }
                             }
+                            KeyCode::Home => {
+                                if !self.packages.is_empty() {
+                                    self.selected = 0;
+                                    self.list_state.select(Some(self.selected));
+                                    self.trigger_details_fetch();
+                                }
+                            }
+                            KeyCode::End => {
+                                if !self.packages.is_empty() {
+                                    self.selected = self.packages.len() - 1;
+                                    self.list_state.select(Some(self.selected));
+                                    self.trigger_details_fetch();
+                                }
+                            }
+                            KeyCode::PageUp => {
+                                if self.selected > 0 {
+                                    // Move up by 10 items, or to the top
+                                    self.selected = self.selected.saturating_sub(10);
+                                    self.list_state.select(Some(self.selected));
+                                    self.trigger_details_fetch();
+                                }
+                            }
+                            KeyCode::PageDown => {
+                                if !self.packages.is_empty() && self.selected + 1 < self.packages.len() {
+                                    // Move down by 10 items, or to the bottom
+                                    self.selected = (self.selected + 10).min(self.packages.len() - 1);
+                                    self.list_state.select(Some(self.selected));
+                                    self.trigger_details_fetch();
+                                }
+                            }
                             _ => {}
                         },
 
@@ -402,10 +459,31 @@ impl App {
                             KeyCode::Right => self.move_cursor_right(),
                             KeyCode::Esc => self.input_mode = InputMode::Normal,
                             _ => {}
-                        },
+                        }
 
                         _ => {}
                     }
+                    }
+                    Event::Mouse(mouse_event) => {
+                        match mouse_event.kind {
+                            event::MouseEventKind::ScrollDown => {
+                                if self.selected + 1 < self.packages.len() {
+                                    self.selected += 1;
+                                    self.list_state.select(Some(self.selected));
+                                    self.trigger_details_fetch();
+                                }
+                            }
+                            event::MouseEventKind::ScrollUp => {
+                                if self.selected > 0 {
+                                    self.selected -= 1;
+                                    self.list_state.select(Some(self.selected));
+                                    self.trigger_details_fetch();
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                    _ => {}
                 }
             }
         }
