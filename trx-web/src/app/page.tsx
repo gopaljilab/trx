@@ -124,14 +124,14 @@ export default function Home() {
                   <span style={{ color: C.text2, fontSize: "12px", fontWeight: "600", fontFamily: "var(--font-geist-sans)", letterSpacing: "-0.01em" }}>Keyboard shortcuts</span>
                 </div>
                 {[
-                  { key: "e",     desc: "Search mode"      },
-                  { key: "space", desc: "Toggle select"    },
-                  { key: "i",     desc: "Install"          },
-                  { key: "x",     desc: "Remove"           },
-                  { key: "U",     desc: "System upgrade"   },
-                  { key: "R",     desc: "Refresh databases"},
-                  { key: "Tab",   desc: "Switch tab"       },
-                  { key: "q",     desc: "Quit"             },
+                  { key: "e", desc: "Search mode" },
+                  { key: "space", desc: "Toggle select" },
+                  { key: "i", desc: "Install" },
+                  { key: "x", desc: "Remove" },
+                  { key: "U", desc: "System upgrade" },
+                  { key: "R", desc: "Refresh databases" },
+                  { key: "Tab", desc: "Switch tab" },
+                  { key: "q", desc: "Quit" },
                 ].map(({ key, desc }) => (
                   <div key={key} className="flex items-center gap-2.5">
                     <kbd className={insetWell("min-w-[2rem] shrink-0 rounded-md px-2 py-1 text-center font-mono text-[11px] text-[#c4c4c4]")}>{key}</kbd>
@@ -159,9 +159,9 @@ export default function Home() {
             </p>
           </FadeUp>
           <StaggerInView style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "12px", marginBottom: "20px" }}>
-            <motion.div variants={itemVariants}><PlatformBadge icon={<IconApple />} name="macOS"           manager="via Homebrew (brew)"    /></motion.div>
-            <motion.div variants={itemVariants}><PlatformBadge icon={<IconArch />}  name="Arch Linux"      manager="via Pacman + AUR (yay)" /></motion.div>
-            <motion.div variants={itemVariants}><PlatformBadge icon={<IconLinux />} name="Debian / Ubuntu" manager="via APT (apt)"          /></motion.div>
+            <motion.div variants={itemVariants}><PlatformBadge icon={<IconApple />} name="macOS" manager="via Homebrew (brew)" /></motion.div>
+            <motion.div variants={itemVariants}><PlatformBadge icon={<IconArch />} name="Arch Linux" manager="via Pacman + AUR (yay)" /></motion.div>
+            <motion.div variants={itemVariants}><PlatformBadge icon={<IconLinux />} name="Debian / Ubuntu" manager="via APT (apt)" /></motion.div>
           </StaggerInView>
         </Container>
       </section>
