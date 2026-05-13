@@ -1795,8 +1795,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "trx"
-version = "0.1.0"
+name = "trx-cli"
+version = "0.1.1"
 dependencies = [
  "color-eyre",
  "directories",
