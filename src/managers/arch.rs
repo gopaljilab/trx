@@ -19,6 +19,14 @@ impl PackageManager for ArchManager {
     }
 
     fn search(&self, query: &str) -> Vec<Package> {
+        // Check cache
+        {
+            let cache = crate::managers::SEARCH_CACHE.lock().unwrap();
+            if let Some(cached) = cache.get(query) {
+                return cached.clone();
+            }
+        }
+
         use rayon::prelude::*;
 
         let results: Vec<Vec<Package>> = vec![0, 1]
@@ -39,6 +47,13 @@ impl PackageManager for ArchManager {
                 .unwrap_or(std::cmp::Ordering::Equal)
         });
         all.truncate(50);
+
+        // Update cache
+        {
+            let mut cache = crate::managers::SEARCH_CACHE.lock().unwrap();
+            cache.insert(query.to_string(), all.clone());
+        }
+
         all
     }
 

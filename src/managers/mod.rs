@@ -51,6 +51,8 @@ pub fn get_system_manager(config: &crate::config::Config) -> Box<dyn PackageMana
 lazy_static::lazy_static! {
     pub static ref DETAILS_CACHE: Arc<Mutex<HashMap<String, HashMap<String, String>>>> =
         Arc::new(Mutex::new(HashMap::new()));
+    pub static ref SEARCH_CACHE: Arc<Mutex<HashMap<String, Vec<Package>>>> =
+        Arc::new(Mutex::new(HashMap::new()));
 }
 
 pub fn parse_alternating_lines(lines: &[&str], manager: String, query: &str) -> Vec<Package> {
