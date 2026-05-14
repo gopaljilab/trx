@@ -382,6 +382,24 @@ impl App {
         self.set_popup(format!("Theme: {}", self.config.theme_name), Color::Cyan);
     }
 
+    fn next_default_tab(&mut self) {
+        let tabs = vec!["Search", "Installed", "Updates", "Settings"];
+        let current_pos = tabs.iter().position(|&t| t == self.config.settings.default_tab).unwrap_or(0);
+        let next_pos = (current_pos + 1) % tabs.len();
+        self.config.settings.default_tab = tabs[next_pos].to_string();
+        let _ = self.config.save();
+        self.set_popup(format!("Default Tab: {}", self.config.settings.default_tab), Color::Cyan);
+    }
+
+    fn prev_default_tab(&mut self) {
+        let tabs = vec!["Search", "Installed", "Updates", "Settings"];
+        let current_pos = tabs.iter().position(|&t| t == self.config.settings.default_tab).unwrap_or(0);
+        let next_pos = if current_pos == 0 { tabs.len() - 1 } else { current_pos - 1 };
+        self.config.settings.default_tab = tabs[next_pos].to_string();
+        let _ = self.config.save();
+        self.set_popup(format!("Default Tab: {}", self.config.settings.default_tab), Color::Cyan);
+    }
+
     pub fn run(mut self, terminal: &mut DefaultTerminal) -> Result<Option<String>> {
         loop {
             if let Tab::Search = self.current_tab {
@@ -560,6 +578,8 @@ impl App {
                                                 let mgr_count = self.available_managers.len();
                                                 if self.settings_index == 5 + mgr_count {
                                                     self.prev_theme();
+                                                } else if self.settings_index == 3 {
+                                                    self.prev_default_tab();
                                                 } else if self.settings_index == 1 || (self.settings_index >= 5 && self.settings_index < 5 + mgr_count) {
                                                     self.handle_settings_toggle();
                                                 }
@@ -570,6 +590,8 @@ impl App {
                                                 let mgr_count = self.available_managers.len();
                                                 if self.settings_index == 5 + mgr_count {
                                                     self.next_theme();
+                                                } else if self.settings_index == 3 {
+                                                    self.next_default_tab();
                                                 } else if self.settings_index == 1 || (self.settings_index >= 5 && self.settings_index < 5 + mgr_count) {
                                                     self.handle_settings_toggle();
                                                 }
@@ -709,7 +731,7 @@ impl App {
                             }
                             return Ok(());
                         }
-                        current_x += width + 1; // 1 for space separator in Ratatui Tabs
+                        current_x += width + 3; // 3 for " | " separator in Ratatui Tabs
                     }
                 }
                 // Settings interaction
