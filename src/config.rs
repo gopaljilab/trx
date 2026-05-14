@@ -7,9 +7,12 @@ use ratatui::style::Color;
 pub struct Settings {
     pub search_debounce_ms: u64,
     pub auto_update_check: bool,
+    pub auto_cleanup: bool,
     pub default_tab: String,
     pub max_search_results: usize,
     pub enabled_managers: Vec<String>,
+    pub border_style: String, // "Plain", "Rounded", "Double", "Thick"
+    pub spinner_type: String, // "Dots", "Bars", "Pulse", "Classic"
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -53,9 +56,12 @@ impl Default for Config {
             settings: Settings {
                 search_debounce_ms: 200,
                 auto_update_check: true,
+                auto_cleanup: false,
                 default_tab: "Search".to_string(),
                 max_search_results: 50,
                 enabled_managers: vec!["pacman".to_string(), "yay".to_string(), "brew".to_string(), "apt".to_string()],
+                border_style: "Rounded".to_string(),
+                spinner_type: "Dots".to_string(),
             },
             keys: Keys {
                 quit: "q".to_string(),

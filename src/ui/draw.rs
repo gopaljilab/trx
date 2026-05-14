@@ -7,7 +7,6 @@ use ratatui::{
 };
 
 use crate::ui::{app::App, input::InputMode};
-use textwrap::wrap;
 
 fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
     let popup_layout = Layout::vertical([
@@ -25,7 +24,23 @@ fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
     .split(popup_layout[1])[1]
 }
 
-const SPINNERS: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+fn get_border_type(style: &str) -> BorderType {
+    match style {
+        "Plain" => BorderType::Plain,
+        "Double" => BorderType::Double,
+        "Thick" => BorderType::Thick,
+        _ => BorderType::Rounded,
+    }
+}
+
+fn get_spinner(spinner_type: &str) -> &'static [&'static str] {
+    match spinner_type {
+        "Bars" => &[" ", "▃", "▄", "▅", "▆", "▇", "▆", "▅", "▄", "▃"],
+        "Pulse" => &["█", "▓", "▒", "░", " ", "░", "▒", "▓"],
+        "Classic" => &["|", "/", "-", "\\"],
+        _ => &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"], // Dots
+    }
+}
 
 pub fn draw_ui(frame: &mut Frame, app: &mut App) {
     let theme_colors = app.config.current_theme();
@@ -86,7 +101,7 @@ pub fn draw_ui(frame: &mut Frame, app: &mut App) {
     }
 
     if let Some((msg, color)) = &app.popup_message {
-        draw_popup(frame, msg, *color, &theme_colors);
+        draw_popup(frame, msg, *color, &theme_colors, &app.config.settings.border_style);
     }
 }
 
@@ -98,6 +113,7 @@ fn draw_update_prompt(frame: &mut Frame, app: &App, theme: &crate::config::Theme
     let current_version = env!("CARGO_PKG_VERSION");
     let success_color = app.config.get_color(&theme.success_color);
     let error_color = app.config.get_color(&theme.error_color);
+    let border_type = get_border_type(&app.config.settings.border_style);
 
     let text = vec![
         Line::from(vec![Span::raw(format!("Version {} -> {}", current_version, version))]),
@@ -120,7 +136,7 @@ fn draw_update_prompt(frame: &mut Frame, app: &App, theme: &crate::config::Theme
     ];
 
     let paragraph = Paragraph::new(text)
-        .block(Block::bordered().title("Update Available").border_type(BorderType::Thick).border_style(Style::default().fg(app.config.get_color(&theme.border_color))))
+        .block(Block::bordered().title("Update Available").border_type(border_type).border_style(Style::default().fg(app.config.get_color(&theme.border_color))))
         .alignment(ratatui::layout::Alignment::Center);
 
     frame.render_widget(paragraph, area);
@@ -163,10 +179,11 @@ fn draw_help_header(frame: &mut Frame, app: &App, area: Rect) {
 
 fn draw_tabs(frame: &mut Frame, app: &App, area: Rect, theme: &crate::config::Theme) {
     let highlight_color = app.config.get_color(&theme.highlight_color);
+    let border_type = get_border_type(&app.config.settings.border_style);
 
     let tab_titles = vec!["Search", "Installed", "Updates", "Settings"];
     let tabs = ratatui::widgets::Tabs::new(tab_titles)
-        .block(Block::bordered().title("Views").border_style(Style::default().fg(app.config.get_color(&theme.border_color))))
+        .block(Block::bordered().title("Views").border_style(Style::default().fg(app.config.get_color(&theme.border_color))).border_type(border_type))
         .select(match app.current_tab {
             crate::ui::app::Tab::Search => 0,
             crate::ui::app::Tab::Installed => 1,
@@ -177,13 +194,14 @@ fn draw_tabs(frame: &mut Frame, app: &App, area: Rect, theme: &crate::config::Th
     frame.render_widget(tabs, area);
 }
 
-fn draw_popup(frame: &mut Frame, msg: &str, color: Color, _theme: &crate::config::Theme) {
+fn draw_popup(frame: &mut Frame, msg: &str, color: Color, _theme: &crate::config::Theme, border_style: &str) {
     let area = centered_rect(30, 10, frame.area());
     frame.render_widget(Clear, area);
+    let border_type = get_border_type(border_style);
     
     let block = Block::bordered()
         .border_style(Style::default().fg(color))
-        .border_type(BorderType::Double);
+        .border_type(border_type);
     
     let paragraph = Paragraph::new(Span::styled(msg, Style::default().fg(color).add_modifier(Modifier::BOLD)))
         .block(block)
@@ -197,6 +215,7 @@ fn draw_settings_tab(frame: &mut Frame, app: &App, area: Rect, theme: &crate::co
     let border_color = app.config.get_color(&theme.border_color);
     let primary_color = app.config.get_color(&theme.text_primary);
     let secondary_color = app.config.get_color(&theme.text_secondary);
+    let border_type = get_border_type(&app.config.settings.border_style);
 
     let mut settings_lines = Vec::new();
 
@@ -246,12 +265,13 @@ fn draw_settings_tab(frame: &mut Frame, app: &App, area: Rect, theme: &crate::co
     settings_lines.push(Line::from(Span::styled("--- General ---", Style::default().fg(highlight_color).add_modifier(Modifier::BOLD))));
     draw_setting!(0, "AUR Helper", &app.config.aur_helper, false);
     draw_setting!(1, "Auto Update Check", if app.config.settings.auto_update_check { "true" } else { "false" }, true);
-    draw_setting!(2, "Search Debounce", &format!("{}ms", app.config.settings.search_debounce_ms), false);
-    draw_setting!(3, "Default Tab", &app.config.settings.default_tab, false);
-    draw_setting!(4, "Max Results", &app.config.settings.max_search_results.to_string(), false);
+    draw_setting!(2, "Auto Cleanup", if app.config.settings.auto_cleanup { "true" } else { "false" }, true);
+    draw_setting!(3, "Search Debounce", &format!("{}ms", app.config.settings.search_debounce_ms), false);
+    draw_setting!(4, "Default Tab", &app.config.settings.default_tab, false);
+    draw_setting!(5, "Max Results", &app.config.settings.max_search_results.to_string(), false);
     settings_lines.push(Line::from(""));
 
-    let mut current_idx = 5;
+    let mut current_idx = 6;
 
     // Managers
     settings_lines.push(Line::from(Span::styled("--- Managers ---", Style::default().fg(highlight_color).add_modifier(Modifier::BOLD))));
@@ -263,11 +283,15 @@ fn draw_settings_tab(frame: &mut Frame, app: &App, area: Rect, theme: &crate::co
     settings_lines.push(Line::from(""));
 
     // Theme
-    settings_lines.push(Line::from(Span::styled("--- Theme ---", Style::default().fg(highlight_color).add_modifier(Modifier::BOLD))));
+    settings_lines.push(Line::from(Span::styled("--- Aesthetics ---", Style::default().fg(highlight_color).add_modifier(Modifier::BOLD))));
     draw_setting!(current_idx, "Theme Preset", &app.config.theme_name, false);
-    current_idx += 1;
-    
+    draw_setting!(current_idx + 1, "Border Style", &app.config.settings.border_style, false);
+    draw_setting!(current_idx + 2, "Spinner Type", &app.config.settings.spinner_type, false);
+    current_idx += 3;
+
     if app.config.theme_name == "Custom" {
+        settings_lines.push(Line::from(""));
+        settings_lines.push(Line::from(Span::styled("--- Custom Colors ---", Style::default().fg(highlight_color).add_modifier(Modifier::BOLD))));
         if let Some(ref ct) = app.config.custom_theme {
             draw_setting!(current_idx, "Border Color", &ct.border_color, false);
             draw_setting!(current_idx + 1, "Highlight Color", &ct.highlight_color, false);
@@ -280,7 +304,8 @@ fn draw_settings_tab(frame: &mut Frame, app: &App, area: Rect, theme: &crate::co
 
     let paragraph = Paragraph::new(settings_lines)
         .block(Block::bordered()
-            .title("Settings (Enter/Space to Toggle or Edit, Arrows for Themes)")
+            .title("Settings (Enter/Space to Toggle or Edit, Arrows for Cycles)")
+            .border_type(border_type)
             .border_style(Style::default().fg(border_color)))
         .wrap(Wrap { trim: false });
 
@@ -288,44 +313,64 @@ fn draw_settings_tab(frame: &mut Frame, app: &App, area: Rect, theme: &crate::co
 }
 
 
+fn draw_status_bar(frame: &mut Frame, app: &App, area: Rect, theme: &crate::config::Theme) {
+    let highlight_color = app.config.get_color(&theme.highlight_color);
+    let secondary_color = app.config.get_color(&theme.text_secondary);
+    let primary_color = app.config.get_color(&theme.text_primary);
+
+    let mode_str = match app.input_mode {
+        InputMode::Normal => " NORMAL ",
+        InputMode::Editing => " EDITING ",
+    };
+
+    let mode_style = match app.input_mode {
+        InputMode::Normal => Style::default().bg(Color::Blue).fg(Color::White).add_modifier(Modifier::BOLD),
+        InputMode::Editing => Style::default().bg(Color::Yellow).fg(Color::Black).add_modifier(Modifier::BOLD),
+    };
+
+    let status_line = Line::from(vec![
+        Span::styled(mode_str, mode_style),
+        Span::raw(" | "),
+        Span::styled(format!("Selected: {} ", app.selected_names.len()), Style::default().fg(highlight_color)),
+        Span::raw(" | "),
+        Span::styled(format!("Manager: {} ", app.manager.name()), Style::default().fg(secondary_color)),
+        Span::raw(" | "),
+        Span::styled("Press '?' for help ", Style::default().fg(primary_color).add_modifier(Modifier::ITALIC)),
+    ]);
+
+    let paragraph = Paragraph::new(status_line).style(Style::default().bg(app.config.get_color("black")));
+    frame.render_widget(paragraph, area);
+}
+
 fn draw_search_input(frame: &mut Frame, app: &App, area: Rect, theme: &crate::config::Theme) {
     let highlight_color = app.config.get_color(&theme.highlight_color);
     let border_color = app.config.get_color(&theme.border_color);
+    let border_type = get_border_type(&app.config.settings.border_style);
+    let spinners = get_spinner(&app.config.settings.spinner_type);
 
     let spinner = if app.loading {
-        SPINNERS[(app.spinner_tick as usize / 5) % SPINNERS.len()]
+        spinners[(app.spinner_tick as usize / 5) % spinners.len()]
     } else {
         ""
     };
 
-    let search_title = match app.current_tab {
-        crate::ui::app::Tab::Search => {
-            if app.loading {
-                format!("Search [{}]", spinner)
-            } else {
-                "Search".to_string()
-            }
-        }
-        crate::ui::app::Tab::Installed => "Installed Packages".to_string(),
-        crate::ui::app::Tab::Updates => "Available Updates".to_string(),
-        crate::ui::app::Tab::Settings => "Settings".to_string(),
-    };
-
+    let search_title = format!(" Search {} ", spinner);
     let input = Paragraph::new(app.input.as_str())
         .style(match app.input_mode {
-            InputMode::Normal => Style::default().fg(app.config.get_color(&theme.text_primary)),
             InputMode::Editing => Style::default().fg(highlight_color),
+            _ => Style::default(),
         })
         .block(Block::bordered()
             .title(search_title)
+            .border_type(border_type)
             .border_style(Style::default().fg(border_color)));
     frame.render_widget(input, area);
 
     if let InputMode::Editing = app.input_mode {
-        frame.set_cursor_position(Position::new(
-            area.x + app.character_index as u16 + 1,
-            area.y + 1,
-        ));
+        frame.set_cursor_position(Position {
+            x: area.x + app.character_index as u16 + 1,
+            y: area.y + 1,
+        });
     }
 }
 
@@ -334,94 +379,64 @@ fn draw_package_list(frame: &mut Frame, app: &mut App, area: Rect, theme: &crate
     let success_color = app.config.get_color(&theme.success_color);
     let secondary_color = app.config.get_color(&theme.text_secondary);
     let primary_color = app.config.get_color(&theme.text_primary);
+    let border_type = get_border_type(&app.config.settings.border_style);
+    let spinners = get_spinner(&app.config.settings.spinner_type);
 
     let items: Vec<ListItem> = if app.packages.is_empty() {
-        app.messages
-            .iter()
-            .enumerate()
-            .map(|(i, m)| ListItem::new(Line::from(Span::raw(format!("{i}: {m}")))))
-            .collect()
+        if app.loading {
+            vec![ListItem::new("  Searching...")]
+        } else {
+            vec![ListItem::new("  No packages found.")]
+        }
     } else {
-        app.packages
-            .iter()
-            .enumerate()
-            .map(|(_i, p)| {
-                let parts: Vec<&str> = p.name.split('/').collect();
-                let name = parts.last().unwrap();
-                let pkg_name = if name.len() > 16 {
-                    format!("{}...", &name[..14])
-                } else {
-                    name.to_string()
-                };
+        app.packages.iter().enumerate().map(|(i, pkg)| {
+            let is_selected = i == app.selected;
+            let is_checked = app.checked[i];
+            let is_installed = app.installed_packages.contains(&pkg.name);
+            
+            let checkbox = if is_checked { "[x] " } else { "[ ] " };
+            let status = if is_installed { " (installed)" } else { "" };
+            
+            let name_style = if is_selected {
+                Style::default().fg(Color::White).add_modifier(Modifier::BOLD)
+            } else if is_installed {
+                Style::default().fg(success_color)
+            } else {
+                Style::default().fg(primary_color)
+            };
 
-                let provider = format!("{}", &p.provider);
-                let version = if p.version.len() > 12 {
-                    format!("{}...", &p.version[..8])
-                } else {
-                    p.version.clone()
-                };
-
-                let checked_symbol = if app.selected_names.contains(&p.name) {
-                    Span::styled("[*]", Style::default().fg(success_color).add_modifier(Modifier::BOLD))
-                } else {
-                    Span::raw("[ ]")
-                };
-
-                let installed_indicator = if app.installed_packages.contains(&p.name) {
-                    Span::styled("(I) ", Style::default().fg(success_color))
-                } else {
-                    Span::raw("    ")
-                };
-
-                let content = Line::from(vec![
-                    checked_symbol,
-                    Span::raw(" "),
-                    installed_indicator,
-                    Span::styled(format!("{:<28}", pkg_name), Style::default().fg(primary_color).add_modifier(Modifier::BOLD)),
-                    Span::styled(format!("{:<20}", version), Style::default().fg(success_color)),
-                    Span::styled(provider, Style::default().fg(secondary_color)),
-                ]);
-
-                ListItem::new(content)
-            })
-            .collect::<Vec<ListItem>>()
+            let line = Line::from(vec![
+                Span::styled(checkbox, Style::default().fg(secondary_color)),
+                Span::styled(&pkg.name, name_style),
+                Span::styled(format!(" v{}", pkg.version), Style::default().fg(secondary_color)),
+                Span::styled(status, Style::default().fg(success_color).add_modifier(Modifier::ITALIC)),
+            ]);
+            
+            ListItem::new(line)
+        }).collect()
     };
 
     let spinner = if app.loading {
-        SPINNERS[(app.spinner_tick as usize / 5) % SPINNERS.len()]
+        spinners[(app.spinner_tick as usize / 5) % spinners.len()]
     } else {
         ""
     };
 
     let list_title = if app.loading && !matches!(app.current_tab, crate::ui::app::Tab::Search) {
-        format!("Packages ({}) [{}]", app.manager.name(), spinner)
+        format!(" Packages {} ", spinner)
     } else {
-        format!("Packages ({})", app.manager.name())
+        format!(" Packages ({}) ", app.packages.len())
     };
 
     let list = List::new(items)
         .block(Block::bordered()
             .title(list_title)
+            .border_type(border_type)
             .border_style(Style::default().fg(border_color)))
         .highlight_style(Style::default().bg(app.config.get_color("blue")).fg(Color::White))
-        .highlight_symbol("» ");
+        .highlight_symbol(">> ");
 
     frame.render_stateful_widget(list, area, &mut app.list_state);
-
-    // Render scrollbar
-    if !app.packages.is_empty() {
-        let scrollbar = ratatui::widgets::Scrollbar::default()
-            .orientation(ratatui::widgets::ScrollbarOrientation::VerticalRight)
-            .begin_symbol(Some("↑"))
-            .end_symbol(Some("↓"));
-        let mut scrollbar_state = ratatui::widgets::ScrollbarState::new(app.packages.len())
-            .position(app.selected);
-        frame.render_stateful_widget(
-            scrollbar,
-            area.inner(ratatui::layout::Margin { vertical: 1, horizontal: 0 }),
-            &mut scrollbar_state,
-        );
-    }
 }
 
 fn draw_details(frame: &mut Frame, app: &App, area: Rect, theme: &crate::config::Theme) {
@@ -429,100 +444,41 @@ fn draw_details(frame: &mut Frame, app: &App, area: Rect, theme: &crate::config:
     let border_color = app.config.get_color(&theme.border_color);
     let error_color = app.config.get_color(&theme.error_color);
     let primary_color = app.config.get_color(&theme.text_primary);
+    let border_type = get_border_type(&app.config.settings.border_style);
+    let spinners = get_spinner(&app.config.settings.spinner_type);
 
     let mut details_lines: Vec<Line> = Vec::new();
-    let spinner = SPINNERS[(app.spinner_tick as usize / 5) % SPINNERS.len()];
+    let spinner = spinners[(app.spinner_tick as usize / 5) % spinners.len()];
 
     match &app.details_state {
         crate::ui::app::DetailsState::Empty => {
-            details_lines.push(Line::from("No package selected"));
+            details_lines.push(Line::from("Select a package to see details"));
         }
         crate::ui::app::DetailsState::Loading => {
-            details_lines.push(Line::from(format!("Loading details... {}", spinner)));
+            details_lines.push(Line::from(format!("Loading details {}...", spinner)));
         }
         crate::ui::app::DetailsState::Error(err) => {
-            details_lines.push(Line::from(vec![
-                Span::styled("Error: ", Style::default().fg(error_color)),
-                Span::raw(err),
-            ]));
+            details_lines.push(Line::from(Span::styled(err, Style::default().fg(error_color))));
         }
-        crate::ui::app::DetailsState::Success(info) => {
-            let mut sorted: Vec<_> = info.iter().collect();
-            sorted.sort_by_key(|(k, _)| *k);
-
-            let key_width = 15; // fixed width for keys
-
-            for (key, value) in sorted {
-                let key_text = format!("{:<key_width$}: ", key, key_width = key_width);
-                let indent = " ".repeat(key_text.len());
-
-                let value_wrapped = wrap(value, (area.width as usize).saturating_sub(key_text.len() + 2));
-
-                if let Some(first) = value_wrapped.get(0) {
-                    details_lines.push(Line::from(vec![
-                        Span::styled(
-                            key_text.clone(),
-                            Style::default()
-                                .fg(highlight_color)
-                                .add_modifier(Modifier::BOLD),
-                        ),
-                        Span::raw(first.to_string()),
-                    ]));
-                }
-
-                for line in value_wrapped.iter().skip(1) {
-                    details_lines.push(Line::from(format!("{}{}", indent, line)));
-                }
+        crate::ui::app::DetailsState::Success(details) => {
+            for (key, value) in details {
+                details_lines.push(Line::from(vec![
+                    Span::styled(format!("{}: ", key), Style::default().fg(highlight_color).add_modifier(Modifier::BOLD)),
+                    Span::raw(value),
+                ]));
             }
         }
     }
 
-    let total_lines = details_lines.len();
     let paragraph = Paragraph::new(details_lines)
         .scroll((app.details_scroll, 0))
         .style(Style::default().fg(primary_color))
         .block(Block::bordered()
             .title("Details")
+            .border_type(border_type)
             .border_style(Style::default().fg(border_color)));
 
     frame.render_widget(paragraph, area);
-
-    // Render scrollbar for details
-    if total_lines > area.height as usize {
-        let scrollbar = ratatui::widgets::Scrollbar::default()
-            .orientation(ratatui::widgets::ScrollbarOrientation::VerticalRight);
-        let mut scrollbar_state = ratatui::widgets::ScrollbarState::new(total_lines)
-            .position(app.details_scroll as usize);
-        frame.render_stateful_widget(
-            scrollbar,
-            area.inner(ratatui::layout::Margin { vertical: 1, horizontal: 0 }),
-            &mut scrollbar_state,
-        );
-    }
-}
-
-fn draw_status_bar(frame: &mut Frame, app: &App, area: Rect, theme: &crate::config::Theme) {
-    let highlight_color = app.config.get_color(&theme.highlight_color);
-    let success_color = app.config.get_color(&theme.success_color);
-
-    let mode_str = match app.input_mode {
-        InputMode::Normal => "NORMAL",
-        InputMode::Editing => "EDITING",
-    };
-    
-    let selected_count = app.selected_names.len();
-
-    let status_line = Line::from(vec![
-        Span::styled(format!(" {} ", mode_str), Style::default().bg(app.config.get_color("blue")).fg(Color::Black).add_modifier(Modifier::BOLD)),
-        Span::raw(" | "),
-        Span::styled(format!("Mgr: {} ", app.manager.name()), Style::default().fg(success_color)),
-        Span::raw("| "),
-        Span::styled(format!("Selected: {} ", selected_count), Style::default().fg(highlight_color)),
-        Span::raw("| "),
-        Span::styled("?: Help | i: Install | x: Remove | U: Upgrade", Style::default().fg(Color::DarkGray)),
-    ]);
-
-    frame.render_widget(Paragraph::new(status_line), area);
 }
 
 fn draw_help_overlay(frame: &mut Frame, app: &App, theme: &crate::config::Theme) {
@@ -530,27 +486,29 @@ fn draw_help_overlay(frame: &mut Frame, app: &App, theme: &crate::config::Theme)
     frame.render_widget(Clear, area);
     let keys = &app.config.keys;
     let highlight_color = app.config.get_color(&theme.highlight_color);
+    let border_type = get_border_type(&app.config.settings.border_style);
+    let version = env!("CARGO_PKG_VERSION");
 
     let help_text = vec![
-        Line::from(vec![Span::styled("Keybindings", Style::default().add_modifier(Modifier::BOLD))]),
+        Line::from(vec![
+            Span::styled("trx ", Style::default().add_modifier(Modifier::BOLD)),
+            Span::raw(format!("v{}", version)),
+        ]),
         Line::from(""),
-        Line::from(vec![Span::styled(keys.quit.clone(), Style::default().fg(highlight_color)), Span::raw(": Quit")]),
-        Line::from(vec![Span::styled(keys.search_edit.clone(), Style::default().fg(highlight_color)), Span::raw(": Edit Search")]),
-        Line::from(vec![Span::styled("Esc", Style::default().fg(highlight_color)), Span::raw(": Normal Mode")]),
-        Line::from(vec![Span::styled(format!("{} / {}", keys.tab_next, keys.tab_prev), Style::default().fg(highlight_color)), Span::raw(": Switch Tabs")]),
-        Line::from(vec![Span::styled(if keys.toggle_select == " " { "Space".into() } else { keys.toggle_select.clone() }, Style::default().fg(highlight_color)), Span::raw(": Select/Unselect")]),
-        Line::from(vec![Span::styled(keys.install.clone(), Style::default().fg(highlight_color)), Span::raw(": Install Selected")]),
-        Line::from(vec![Span::styled(keys.remove.clone(), Style::default().fg(highlight_color)), Span::raw(": Remove Selected")]),
-        Line::from(vec![Span::styled(keys.system_upgrade.clone(), Style::default().fg(highlight_color)), Span::raw(": Full System Upgrade")]),
-        Line::from(vec![Span::styled(keys.refresh_db.clone(), Style::default().fg(highlight_color)), Span::raw(": Refresh Databases")]),
-        Line::from(vec![Span::styled("Up / Down / j / k", Style::default().fg(highlight_color)), Span::raw(": Move")]),
-        Line::from(vec![Span::styled(keys.help.clone(), Style::default().fg(highlight_color)), Span::raw(": Toggle Help")]),
+        Line::from(vec![Span::styled(format!("{:<15}", keys.search_edit), Style::default().fg(highlight_color)), Span::raw("Enter search mode")]),
+        Line::from(vec![Span::styled(format!("{:<15}", keys.toggle_select), Style::default().fg(highlight_color)), Span::raw("Toggle package selection")]),
+        Line::from(vec![Span::styled(format!("{:<15}", keys.install), Style::default().fg(highlight_color)), Span::raw("Install selected packages")]),
+        Line::from(vec![Span::styled(format!("{:<15}", keys.remove), Style::default().fg(highlight_color)), Span::raw("Remove selected packages")]),
+        Line::from(vec![Span::styled(format!("{:<15}", keys.tab_next), Style::default().fg(highlight_color)), Span::raw("Next tab")]),
+        Line::from(vec![Span::styled(format!("{:<15}", keys.tab_prev), Style::default().fg(highlight_color)), Span::raw("Previous tab")]),
+        Line::from(vec![Span::styled(format!("{:<15}", keys.quit), Style::default().fg(highlight_color)), Span::raw("Quit")]),
     ];
+
     frame.render_widget(
         Paragraph::new(help_text)
             .block(Block::bordered()
                 .title("Help")
-                .border_type(BorderType::Double)
+                .border_type(border_type)
                 .border_style(Style::default().fg(app.config.get_color(&theme.border_color))))
             .wrap(Wrap { trim: true }),
         area,

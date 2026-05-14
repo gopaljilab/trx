@@ -400,6 +400,42 @@ impl App {
         self.set_popup(format!("Default Tab: {}", self.config.settings.default_tab), Color::Cyan);
     }
 
+    fn next_border_style(&mut self) {
+        let styles = vec!["Plain", "Rounded", "Double", "Thick"];
+        let current_pos = styles.iter().position(|&s| s == self.config.settings.border_style).unwrap_or(0);
+        let next_pos = (current_pos + 1) % styles.len();
+        self.config.settings.border_style = styles[next_pos].to_string();
+        let _ = self.config.save();
+        self.set_popup(format!("Border Style: {}", self.config.settings.border_style), Color::Cyan);
+    }
+
+    fn prev_border_style(&mut self) {
+        let styles = vec!["Plain", "Rounded", "Double", "Thick"];
+        let current_pos = styles.iter().position(|&s| s == self.config.settings.border_style).unwrap_or(0);
+        let next_pos = if current_pos == 0 { styles.len() - 1 } else { current_pos - 1 };
+        self.config.settings.border_style = styles[next_pos].to_string();
+        let _ = self.config.save();
+        self.set_popup(format!("Border Style: {}", self.config.settings.border_style), Color::Cyan);
+    }
+
+    fn next_spinner_type(&mut self) {
+        let types = vec!["Dots", "Bars", "Pulse", "Classic"];
+        let current_pos = types.iter().position(|&t| t == self.config.settings.spinner_type).unwrap_or(0);
+        let next_pos = (current_pos + 1) % types.len();
+        self.config.settings.spinner_type = types[next_pos].to_string();
+        let _ = self.config.save();
+        self.set_popup(format!("Spinner: {}", self.config.settings.spinner_type), Color::Cyan);
+    }
+
+    fn prev_spinner_type(&mut self) {
+        let types = vec!["Dots", "Bars", "Pulse", "Classic"];
+        let current_pos = types.iter().position(|&t| t == self.config.settings.spinner_type).unwrap_or(0);
+        let next_pos = if current_pos == 0 { types.len() - 1 } else { current_pos - 1 };
+        self.config.settings.spinner_type = types[next_pos].to_string();
+        let _ = self.config.save();
+        self.set_popup(format!("Spinner: {}", self.config.settings.spinner_type), Color::Cyan);
+    }
+
     pub fn run(mut self, terminal: &mut DefaultTerminal) -> Result<Option<String>> {
         loop {
             if let Tab::Search = self.current_tab {
@@ -576,11 +612,15 @@ impl App {
                                         KeyCode::Left | KeyCode::Char('h') => {
                                             if self.current_tab == Tab::Settings {
                                                 let mgr_count = self.available_managers.len();
-                                                if self.settings_index == 5 + mgr_count {
+                                                if self.settings_index == 6 + mgr_count {
                                                     self.prev_theme();
-                                                } else if self.settings_index == 3 {
+                                                } else if self.settings_index == 6 + mgr_count + 1 {
+                                                    self.prev_border_style();
+                                                } else if self.settings_index == 6 + mgr_count + 2 {
+                                                    self.prev_spinner_type();
+                                                } else if self.settings_index == 4 {
                                                     self.prev_default_tab();
-                                                } else if self.settings_index == 1 || (self.settings_index >= 5 && self.settings_index < 5 + mgr_count) {
+                                                } else if self.settings_index == 1 || self.settings_index == 2 || (self.settings_index >= 6 && self.settings_index < 6 + mgr_count) {
                                                     self.handle_settings_toggle();
                                                 }
                                             }
@@ -588,11 +628,15 @@ impl App {
                                         KeyCode::Right | KeyCode::Char('l') => {
                                             if self.current_tab == Tab::Settings {
                                                 let mgr_count = self.available_managers.len();
-                                                if self.settings_index == 5 + mgr_count {
+                                                if self.settings_index == 6 + mgr_count {
                                                     self.next_theme();
-                                                } else if self.settings_index == 3 {
+                                                } else if self.settings_index == 6 + mgr_count + 1 {
+                                                    self.next_border_style();
+                                                } else if self.settings_index == 6 + mgr_count + 2 {
+                                                    self.next_spinner_type();
+                                                } else if self.settings_index == 4 {
                                                     self.next_default_tab();
-                                                } else if self.settings_index == 1 || (self.settings_index >= 5 && self.settings_index < 5 + mgr_count) {
+                                                } else if self.settings_index == 1 || self.settings_index == 2 || (self.settings_index >= 6 && self.settings_index < 6 + mgr_count) {
                                                     self.handle_settings_toggle();
                                                 }
                                             }
@@ -739,14 +783,18 @@ impl App {
                     let r = mouse_event.row;
                     let mgr_count = self.available_managers.len() as u16;
                     
-                    let idx = if r >= 7 && r <= 11 {
+                    let idx = if r >= 7 && r <= 12 {
                         Some(r - 7)
-                    } else if r >= 13 && r < 13 + mgr_count {
-                        Some(r - 13 + 5)
-                    } else if r == 14 + mgr_count {
-                        Some(5 + mgr_count)
-                    } else if r >= 15 + mgr_count && r < 21 + mgr_count {
-                        Some(r - (15 + mgr_count) + 6 + mgr_count)
+                    } else if r >= 14 && r < 14 + mgr_count {
+                        Some(r - 14 + 6)
+                    } else if r == 15 + mgr_count {
+                        Some(6 + mgr_count)
+                    } else if r == 16 + mgr_count {
+                        Some(7 + mgr_count)
+                    } else if r == 17 + mgr_count {
+                        Some(8 + mgr_count)
+                    } else if r >= 19 + mgr_count && r < 25 + mgr_count {
+                        Some(r - (19 + mgr_count) + 7 + mgr_count)
                     } else {
                         None
                     };
@@ -819,23 +867,34 @@ impl App {
                 let _ = self.config.save();
                 self.set_popup(format!("Auto Update Check: {}", self.config.settings.auto_update_check), Color::Cyan);
             }
-            i if i >= 5 && i < 5 + mgr_count => {
-                let mgr_name = self.available_managers[i - 5].clone();
+            2 => { // Auto Cleanup
+                self.config.settings.auto_cleanup = !self.config.settings.auto_cleanup;
+                let _ = self.config.save();
+                self.set_popup(format!("Auto Cleanup: {}", self.config.settings.auto_cleanup), Color::Cyan);
+            }
+            i if i >= 6 && i < 6 + mgr_count => {
+                let mgr_name = self.available_managers[i - 6].clone();
                 self.toggle_manager(&mgr_name);
             }
-            i if i == 5 + mgr_count => { 
+            i if i == 6 + mgr_count => { 
                 self.next_theme(); 
+            }
+            i if i == 6 + mgr_count + 1 => {
+                self.next_border_style();
+            }
+            i if i == 6 + mgr_count + 2 => {
+                self.next_spinner_type();
             }
             _ => {
                 // If it's a string/color field, enter editing mode
                 self.input = match self.settings_index {
                     0 => self.config.aur_helper.clone(),
-                    2 => self.config.settings.search_debounce_ms.to_string(),
-                    3 => self.config.settings.default_tab.clone(),
-                    4 => self.config.settings.max_search_results.to_string(),
-                    i if i >= 6 + mgr_count && i <= 11 + mgr_count && self.config.theme_name == "Custom" => {
+                    3 => self.config.settings.search_debounce_ms.to_string(),
+                    4 => self.config.settings.default_tab.clone(),
+                    5 => self.config.settings.max_search_results.to_string(),
+                    i if i >= 7 + mgr_count && i <= 12 + mgr_count && self.config.theme_name == "Custom" => {
                         let theme = self.config.custom_theme.as_ref().unwrap();
-                        match i - (6 + mgr_count) {
+                        match i - (7 + mgr_count) {
                             0 => theme.border_color.clone(),
                             1 => theme.highlight_color.clone(),
                             2 => theme.success_color.clone(),
@@ -847,7 +906,7 @@ impl App {
                     }
                     _ => String::new(),
                 };
-                if !self.input.is_empty() || (self.settings_index >= 6 + mgr_count && self.settings_index <= 11 + mgr_count) {
+                if !self.input.is_empty() || (self.settings_index >= 7 + mgr_count && self.settings_index <= 12 + mgr_count) {
                     self.input_mode = InputMode::Editing;
                     self.character_index = self.input.chars().count();
                 }
@@ -862,12 +921,12 @@ impl App {
 
         match self.settings_index {
             0 => { self.config.aur_helper = val; saved = true; }
-            2 => if let Ok(n) = val.parse() { self.config.settings.search_debounce_ms = n; saved = true; },
-            3 => { self.config.settings.default_tab = val; saved = true; }
-            4 => if let Ok(n) = val.parse() { self.config.settings.max_search_results = n; saved = true; },
-            i if i >= 6 + mgr_count && i <= 11 + mgr_count => {
+            3 => if let Ok(n) = val.parse() { self.config.settings.search_debounce_ms = n; saved = true; },
+            4 => { self.config.settings.default_tab = val; saved = true; }
+            5 => if let Ok(n) = val.parse() { self.config.settings.max_search_results = n; saved = true; },
+            i if i >= 7 + mgr_count && i <= 12 + mgr_count => {
                 if let Some(ref mut theme) = self.config.custom_theme {
-                    match i - (6 + mgr_count) {
+                    match i - (7 + mgr_count) {
                         0 => theme.border_color = val,
                         1 => theme.highlight_color = val,
                         2 => theme.success_color = val,
