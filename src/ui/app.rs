@@ -363,7 +363,11 @@ impl App {
                         if self.update_prompt.is_some() {
                             if key.kind == KeyEventKind::Press {
                                 match key.code {
-                                    KeyCode::Left | KeyCode::Right | KeyCode::Tab => {
+                                    KeyCode::Left
+                                    | KeyCode::Right
+                                    | KeyCode::Tab
+                                    | KeyCode::Char('h')
+                                    | KeyCode::Char('l') => {
                                         self.update_selected_yes = !self.update_selected_yes;
                                     }
                                     KeyCode::Enter => {
