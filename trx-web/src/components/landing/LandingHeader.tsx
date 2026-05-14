@@ -6,7 +6,7 @@ import { motion } from "motion/react";
 import { IconGithub } from "./icons";
 import { NavLink } from "./NavLink";
 import { onSamePageHashLinkClick } from "./smooth-hash-nav";
-import { lightOutlineBtn } from "@/app/landing-material";
+import { lightOutlineBtn, LANDING_UI_SOUND_CLASS } from "@/app/landing-material";
 import { TrxLogo } from "./TrxLogo";
 
 export function LandingHeader() {
@@ -26,7 +26,10 @@ export function LandingHeader() {
         >
           <Link
             href="/"
-            className="flex shrink-0 rounded-xl outline-none ring-offset-2 ring-offset-[#191919] focus-visible:ring-2 focus-visible:ring-[#555fbb]/45"
+            className={[
+              LANDING_UI_SOUND_CLASS,
+              "flex shrink-0 rounded-xl outline-none ring-offset-2 ring-offset-[#191919] focus-visible:ring-2 focus-visible:ring-[#555fbb]/45",
+            ].join(" ")}
           >
             <TrxLogo size={26} variant="light" />
           </Link>
@@ -57,6 +60,7 @@ export function LandingHeader() {
                 href={installHref}
                 onClick={(e) => onSamePageHashLinkClick(e, installHref, pathname)}
                 className={[
+                  LANDING_UI_SOUND_CLASS,
                   "inline-flex items-center justify-center",
                   "rounded-lg border border-white/[0.06]",
                   "bg-gradient-to-b from-[#202020] to-[#191919]",

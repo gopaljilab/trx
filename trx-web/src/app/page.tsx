@@ -145,7 +145,7 @@ export default function Home() {
         <Container className="py-12 sm:py-16 lg:py-20">
           <FadeUp style={{ marginBottom: "32px" }}>
             <Label>Platforms</Label>
-            <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-14">
+            <div className="mt-3 flex flex-col justify-between  gap-4 sm:flex-row sm:items-end sm:gap-14">
               <h2 style={{ fontSize: "clamp(26px, 3vw, 38px)", fontWeight: "700", letterSpacing: "-0.03em", fontFamily: "var(--font-geist-sans)", lineHeight: "1.15", color: C.text, margin: 0 }}>
                 Works everywhere<br />you work.
               </h2>

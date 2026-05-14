@@ -5,6 +5,9 @@
 
 export const SCENE = "bg-[#0f0f0f]";
 
+/** Mark interactive roots on the landing page so the global click sound includes links, not only `<button>`. */
+export const LANDING_UI_SOUND_CLASS = "landing-ui-sound";
+
 export const RAISED_GRAD = "bg-gradient-to-b from-[#202020] to-[#191919]";
 
 export const RAISED_BORDER = "border border-white/5";
@@ -43,6 +46,7 @@ export const LIGHT_COMMAND_ROW =
 /** Secondary CTA / link chip: same chrome as {@link LIGHT_COMMAND_ROW} (sans mono). */
 export function lightOutlineBtn(extra?: string) {
   return [
+    LANDING_UI_SOUND_CLASS,
     "inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-black/8 bg-white px-3 text-sm font-medium leading-none text-[#1a1a1a] shadow-[0_1px_0_rgba(255,255,255,0.9)_inset,0_1px_2px_rgba(0,0,0,0.06)]",
     "no-underline transition-colors hover:bg-[#f6f6f6] hover:text-[#0a0a0a] active:scale-[0.97]",
     FOCUS_RING_ON_DARK,
@@ -86,6 +90,7 @@ export function raisedTopBar(extra?: string) {
 /** Primary CTA: same gradient as shells, stronger shadow */
 export function poppingBtn(extra?: string) {
   return [
+    LANDING_UI_SOUND_CLASS,
     "inline-flex items-center justify-center gap-2 rounded-lg font-semibold",
     RAISED_GRAD,
     RAISED_BORDER,
@@ -102,6 +107,7 @@ export function poppingBtn(extra?: string) {
 /** Secondary control on shell (raised, softer) */
 export function raisedGhostBtn(extra?: string) {
   return [
+    LANDING_UI_SOUND_CLASS,
     "inline-flex h-8 items-center justify-center gap-1.5 rounded-lg font-medium leading-none",
     RAISED_GRAD,
     RAISED_BORDER,

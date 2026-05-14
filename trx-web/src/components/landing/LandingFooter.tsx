@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { FOCUS_RING, raisedTopBar } from "@/app/landing-material";
+import { FOCUS_RING, LANDING_UI_SOUND_CLASS, raisedTopBar } from "@/app/landing-material";
 import { C } from "./tokens";
 import { TrxLogo } from "./TrxLogo";
 
 const linkClass = [
+  LANDING_UI_SOUND_CLASS,
   "text-[12.5px] text-[#505050] no-underline transition-colors hover:text-[#878787] sm:text-[13px]",
   "[font-family:var(--font-geist-sans)]",
   FOCUS_RING,
