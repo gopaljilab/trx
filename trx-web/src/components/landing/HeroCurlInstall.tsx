@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { insetWell } from "@/app/landing-material";
+import { LIGHT_COMMAND_ROW } from "@/app/landing-material";
 import { HERO_QUICK_INSTALL } from "./tokens";
 import { CopyIconButton } from "./CopyIconButton";
 
@@ -30,11 +30,11 @@ export function HeroCurlInstall() {
       >
         Quick install: paste in your terminal:
       </p>
-      <div className={insetWell("inline-flex w-full items-center gap-2 rounded-lg py-1 pl-3 pr-1.5 font-mono text-[12px] text-[#c4c4c4]")}>
+      <div className={LIGHT_COMMAND_ROW}>
         <div className="min-w-0 flex-1 overflow-hidden truncate whitespace-nowrap pr-0.5">
           {HERO_QUICK_INSTALL}
         </div>
-        <CopyIconButton copied={copied} onCopy={handleCopy} idleLabel="Copy quick install command" />
+        <CopyIconButton tone="light" copied={copied} onCopy={handleCopy} idleLabel="Copy quick install command" />
       </div>
     </div>
   );

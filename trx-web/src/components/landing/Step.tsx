@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { insetDisc, insetWell } from "@/app/landing-material";
 import { C } from "./tokens";
+import { MX } from "./matrix-tokens";
 import { CopyIconButton } from "./CopyIconButton";
 
 export function Step({ num, title, code }: { num: string; title: string; code: string }) {
@@ -25,7 +26,7 @@ export function Step({ num, title, code }: { num: string; title: string; code: s
   return (
     <div>
       <div className="mb-5 flex items-center gap-3">
-        <div className={insetDisc("flex h-8 w-8 shrink-0 items-center justify-center font-mono text-xs font-semibold text-[#878787]")}>
+        <div className={insetDisc("flex h-8 w-8 shrink-0 items-center justify-center font-mono text-xs font-semibold")} style={{ color: MX.emeraldText }}>
           {num}
         </div>
         <h3
@@ -37,7 +38,7 @@ export function Step({ num, title, code }: { num: string; title: string; code: s
       </div>
       <div className={insetWell("flex items-center gap-2 rounded-md py-0.5 pl-3.5 pr-2 font-mono text-[12px] text-[#878787]")}>
         <div className="min-w-0 flex-1 break-words leading-none">
-          <span style={{ color: C.text3, userSelect: "none" }}>$ </span>
+          <span style={{ color: MX.emeraldText, userSelect: "none" }}>$ </span>
           {code}
         </div>
         <CopyIconButton compact copied={copied} onCopy={handleCopy} idleLabel={`Copy command: ${title}`} />

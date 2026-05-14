@@ -1,9 +1,9 @@
-import { C } from "./tokens";
+import { MX } from "./matrix-tokens";
 
 export function Label({ children }: { children: React.ReactNode }) {
   return (
     <p style={{
-      color: C.text3,
+      color: MX.emeraldText,
       fontFamily: "var(--font-geist-mono)",
       fontSize: "11px",
       letterSpacing: "0.1em",
@@ -11,7 +11,7 @@ export function Label({ children }: { children: React.ReactNode }) {
       textTransform: "uppercase",
       fontWeight: "500",
     }}>
-      {children}
+      <span style={{ opacity: 0.45 }}>// </span>{children}
     </p>
   );
 }

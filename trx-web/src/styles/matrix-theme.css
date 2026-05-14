@@ -1,0 +1,443 @@
+/*
+ * Matrix Theme Overlay
+ * ─────────────────────────────────────────────────────────────
+ * Layered on top of the existing design system.
+ * Touches: CSS custom properties, utility classes, keyframes.
+ * Does not touch: component structure, spacing, layout grid,
+ *                 Tailwind config, or existing Tailwind classes.
+ *
+ * To apply: add the utility classes below to JSX elements.
+ * See matrix-tokens.ts for the JS-side token mirror.
+ */
+
+/* ── Design Tokens ─────────────────────────────────────────── */
+@layer base {
+  :root {
+    /*
+     * Muted emerald palette.
+     * Deep fills → mid borders → bright text, in that order of
+     * darkness. The "text" value (#52B788) is the only one safe
+     * for actual typographic content (WCAG AA: ~7.9:1 on #0b0b0b,
+     * ~7.0:1 on #111111).  All darker values are for non-text use.
+     */
+    --mx-emerald-deep:   #162E25;
+    --mx-emerald:        #1F4A3A;
+    --mx-emerald-mid:    #2D6B54;
+    --mx-emerald-bright: #3D8F6E;
+    --mx-emerald-text:   #52B788;
+
+    /* rgba fills — use for backgrounds, never body text */
+    --mx-emerald-subtle: rgba(31, 74, 58, 0.10);
+    --mx-emerald-glow:   rgba(31, 74, 58, 0.20);
+
+    /* Desaturated teal — secondary accent */
+    --mx-teal:           #1A3A3F;
+    --mx-teal-border:    rgba(26, 58, 63, 0.35);
+
+    /* Cool gunmetal — alternate surface accent */
+    --mx-gunmetal:       #1C2428;
+
+    /*
+     * 1px borders — never fills.
+     * "border" is subtle at rest; "border-mid" on hover;
+     * "border-bright" on active / focus.
+     */
+    --mx-border:         rgba(45, 107, 84, 0.25);
+    --mx-border-mid:     rgba(61, 143, 110, 0.38);
+    --mx-border-bright:  rgba(82, 183, 136, 0.55);
+
+    /* Emerald focus glow — use as box-shadow on :focus-visible */
+    --mx-focus-shadow:
+      0 0 0 2px rgba(31, 74, 58, 0.55),
+      0 0 0 4px rgba(31, 74, 58, 0.22),
+      0 0 16px rgba(31, 74, 58, 0.28);
+
+    /* Grid overlay */
+    --mx-grid-size:  32px;
+    --mx-grid-color: rgba(45, 107, 84, 0.12);
+
+    /* Scanlines */
+    --mx-scan-gap:     3px;
+    --mx-scan-stripe:  rgba(0, 0, 0, 0.055);
+
+    /* Monospace stack for labels, numerics, prefixes */
+    --mx-mono: var(--font-geist-mono, 'IBM Plex Mono', 'JetBrains Mono', monospace);
+  }
+}
+
+/* ── Grid Overlay ──────────────────────────────────────────── */
+/*
+ * Apply to a <section> or wrapper to add a faint lattice behind
+ * content. Works best on hero or features sections — not every
+ * section, or it loses impact.
+ *
+ * Usage: className="mx-grid"
+ */
+.mx-grid {
+  background-image:
+    linear-gradient(var(--mx-grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--mx-grid-color) 1px, transparent 1px);
+  background-size: var(--mx-grid-size) var(--mx-grid-size);
+  background-position: center top;
+}
+
+/* ── Scanline Texture ──────────────────────────────────────── */
+/*
+ * Horizontal scanline texture rendered as a ::before overlay.
+ * Uses isolation so child z-indices work correctly.
+ * The ::before sits at z-index: 2 — content in the container
+ * should be relatively positioned with z-index: 1+ to appear
+ * over the scanlines.
+ *
+ * Usage: className="mx-scanlines"
+ *
+ * Good candidates: HeroTerminal wrapper, feature card inset wells,
+ * the curl install block.
+ */
+.mx-scanlines {
+  isolation: isolate;
+  position: relative;
+}
+
+.mx-scanlines::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 2;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent calc(var(--mx-scan-gap) * 2 - 1px),
+    var(--mx-scan-stripe) calc(var(--mx-scan-gap) * 2 - 1px),
+    var(--mx-scan-stripe) calc(var(--mx-scan-gap) * 2)
+  );
+}
+
+/* ── 1px Accent Border ─────────────────────────────────────── */
+/*
+ * Thin emerald border, dims at rest, brightens on hover.
+ * Layer over existing RAISED_BORDER (white/5) — they coexist.
+ *
+ * Usage: className="mx-border"
+ */
+.mx-border {
+  border: 1px solid var(--mx-border);
+  transition: border-color 0.18s ease;
+}
+.mx-border:hover {
+  border-color: var(--mx-border-mid);
+}
+
+/* ── Ambient Emerald Glow ──────────────────────────────────── */
+/*
+ * Soft outer glow. Use on 1–2 hero elements or the primary CTA
+ * section — overusing kills the effect.
+ *
+ * Usage: className="mx-glow"
+ */
+.mx-glow {
+  box-shadow:
+    0 0 0 1px var(--mx-border),
+    0 0 20px var(--mx-emerald-glow),
+    0 0 40px rgba(31, 74, 58, 0.08);
+  transition: box-shadow 0.3s ease;
+}
+
+.mx-glow:hover {
+  box-shadow:
+    0 0 0 1px var(--mx-border-mid),
+    0 0 30px var(--mx-emerald-glow),
+    0 0 60px rgba(31, 74, 58, 0.12);
+}
+
+/* ── Emerald Focus Ring ─────────────────────────────────────── */
+/*
+ * Drop onto interactive elements to replace the existing purple
+ * ring from FOCUS_RING with an emerald Matrix variant.
+ * If you keep FOCUS_RING on most elements, only apply this to
+ * the install CTA or other high-visibility controls.
+ *
+ * Usage: className="mx-focus"
+ */
+.mx-focus:focus-visible {
+  outline: none;
+  box-shadow: var(--mx-focus-shadow);
+}
+
+/* ── Terminal Section Label ─────────────────────────────────── */
+/*
+ * Monospace uppercase label with a terminal prefix.
+ * Three variants: // (section), > (status), $ (command).
+ * All pass WCAG AA — #52B788 on #0b0b0b is ~7.9:1.
+ *
+ * Usage:
+ *   <span className="mx-label">Features</span>        → // FEATURES
+ *   <span className="mx-label mx-label-gt">Install</span> → > INSTALL
+ *   <span className="mx-label mx-label-sh">Run</span>     → $ RUN
+ */
+.mx-label {
+  display: inline-block;
+  font-family: var(--mx-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--mx-emerald-text);
+  line-height: 1;
+}
+
+.mx-label::before {
+  content: '// ';
+  opacity: 0.5;
+}
+
+.mx-label.mx-label-gt::before {
+  content: '> ';
+  opacity: 0.5;
+}
+
+.mx-label.mx-label-sh::before {
+  content: '$ ';
+  opacity: 0.5;
+}
+
+/* ── Cursor Blink ───────────────────────────────────────────── */
+/*
+ * Appends a blinking block cursor after element text.
+ * Interval is 530ms — intentionally matches HeroTerminal.tsx.
+ *
+ * Usage: className="mx-cursor"
+ *   e.g. on an h2 or a status line span
+ */
+@keyframes mx-cursor-blink {
+  0%,  49.9% { opacity: 1; }
+  50%, 100%  { opacity: 0; }
+}
+
+.mx-cursor::after {
+  content: '▋';
+  display: inline-block;
+  margin-left: 2px;
+  color: var(--mx-emerald-text);
+  animation: mx-cursor-blink 530ms step-end infinite;
+  font-family: var(--mx-mono);
+  font-size: 0.85em;
+  line-height: 1;
+  vertical-align: baseline;
+}
+
+/* ── Character Reveal ───────────────────────────────────────── */
+/*
+ * One-shot clip-path sweep, left → right. Reads as text being
+ * typed into view. Use at most ONCE per page, on the primary h1.
+ *
+ * Motion is suppressed for users who prefer reduced motion.
+ *
+ * CSS var --mx-reveal-delay lets you stagger multiple lines:
+ *   style={{ '--mx-reveal-delay': '0.1s' }}
+ *
+ * Usage:
+ *   <h1 className="mx-reveal">...</h1>
+ *   <span className="mx-reveal" style={{ '--mx-reveal-delay': '0.4s' }}>...</span>
+ */
+@keyframes mx-char-reveal {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 0%   0 0); }
+}
+
+.mx-reveal {
+  animation: mx-char-reveal 0.85s cubic-bezier(0.16, 1, 0.3, 1)
+    var(--mx-reveal-delay, 0s) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mx-reveal {
+    animation: none;
+    clip-path: none;
+    opacity: 1;
+  }
+  .mx-cursor::after {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* ── Heading Glitch ─────────────────────────────────────────── */
+/*
+ * Periodic visual glitch: micro-translate + skewX + chromatic
+ * aberration via text-shadow. Fires ~every 9s.
+ * Works on any element — no data-text attribute needed.
+ * Does not override inline color styles (uses text-shadow instead).
+ *
+ * Usage: className="mx-glitch"
+ * Combine with mx-reveal: className="mx-reveal mx-glitch"
+ */
+@keyframes mx-heading-glitch {
+  /* Resting state — most of the cycle is clean */
+  0%, 36%, 100% {
+    transform: none;
+    text-shadow: none;
+    filter: none;
+    opacity: 1;
+  }
+
+  /* ── Hit 1 ── hard slam left */
+  37% {
+    transform: translate(-12px, 0) skewX(-7deg);
+    text-shadow:
+      12px  0    rgba(52, 183, 136, 1),
+      -10px 0    rgba(31,  74,  58, 0.95),
+        0   0    40px rgba(52, 183, 136, 0.35);
+    filter: blur(0.6px) brightness(1.2);
+    opacity: 0.78;
+  }
+  /* snap right */
+  38% {
+    transform: translate(9px, -2px) skewX(5deg);
+    text-shadow:
+      -9px 0 rgba(52, 183, 136, 0.95),
+       7px 0 rgba(61, 143, 110, 0.85);
+    filter: none;
+    opacity: 1;
+  }
+  /* settle */
+  39% {
+    transform: translate(-4px, 1px) skewX(-2deg);
+    text-shadow:
+      4px  0 rgba(52, 183, 136, 0.55),
+      -3px 0 rgba(31,  74,  58, 0.45);
+    opacity: 0.93;
+  }
+  /* back to clean */
+  40% {
+    transform: none;
+    text-shadow: none;
+    filter: none;
+    opacity: 1;
+  }
+
+  /* ── Hit 2 ── stutter, opposite direction */
+  42% {
+    transform: translate(14px, 0) skewX(8deg);
+    text-shadow:
+      -14px 0 rgba(52, 183, 136, 1),
+       11px 0 rgba(31,  74,  58, 0.9),
+         0  0 50px rgba(52, 183, 136, 0.3);
+    filter: blur(0.4px);
+    opacity: 0.72;
+  }
+  43% {
+    transform: translate(-7px, 2px) skewX(-4deg);
+    text-shadow:
+      7px  0 rgba(52, 183, 136, 0.80),
+      -6px 0 rgba(61, 143, 110, 0.70);
+    filter: none;
+    opacity: 0.96;
+  }
+  44% {
+    transform: translate(2px, 0);
+    text-shadow: 2px 0 rgba(52, 183, 136, 0.25);
+    opacity: 1;
+  }
+  45% {
+    transform: none;
+    text-shadow: none;
+    filter: none;
+    opacity: 1;
+  }
+}
+
+.mx-glitch {
+  animation: mx-heading-glitch 3.5s linear 1s infinite;
+}
+
+/* When both classes are present, run both animations on the same element */
+.mx-reveal.mx-glitch {
+  animation:
+    mx-char-reveal 0.85s cubic-bezier(0.16, 1, 0.3, 1) var(--mx-reveal-delay, 0s) both,
+    mx-heading-glitch 3.5s linear 1.5s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mx-glitch,
+  .mx-reveal.mx-glitch {
+    animation: none;
+  }
+}
+
+/* ── Fade-up Entrance ───────────────────────────────────────── */
+/*
+ * Gentle fade + translate for secondary elements.
+ * CSS var --mx-fade-delay for staggering.
+ *
+ * Usage: className="mx-fade-up"
+ */
+@keyframes mx-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mx-fade-up {
+  animation: mx-fade-up 0.5s ease-out var(--mx-fade-delay, 0s) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mx-fade-up {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── Accent Text ────────────────────────────────────────────── */
+/*
+ * Emerald-tinted monospace text. For numeric callouts, version
+ * strings, or status values — not for body copy.
+ *
+ * Usage: className="mx-accent"
+ */
+.mx-accent {
+  color: var(--mx-emerald-text);
+  font-family: var(--mx-mono);
+}
+
+/* ── Status Badge ───────────────────────────────────────────── */
+/*
+ * Small dot-prefixed badge with emerald fill.
+ * An alternative to raisedPill() for Matrix-accented tags.
+ *
+ * Usage: <span className="mx-badge">Active</span>
+ */
+.mx-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  font-family: var(--mx-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--mx-emerald-text);
+  background: var(--mx-emerald-subtle);
+  border: 1px solid var(--mx-border);
+}
+
+.mx-badge::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--mx-emerald-text);
+  flex-shrink: 0;
+  box-shadow: 0 0 6px var(--mx-emerald-glow);
+}

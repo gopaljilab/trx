@@ -6,6 +6,7 @@ import { motion } from "motion/react";
 import { IconGithub } from "./icons";
 import { NavLink } from "./NavLink";
 import { onSamePageHashLinkClick } from "./smooth-hash-nav";
+import { lightOutlineBtn } from "@/app/landing-material";
 import { TrxLogo } from "./TrxLogo";
 
 export function LandingHeader() {
@@ -23,39 +24,32 @@ export function LandingHeader() {
             "px-2 py-1.5 sm:px-3",
           ].join(" ")}
         >
-          <div className="shrink-0 rounded-xl bg-[#0c0c0c] p-1 shadow-[0_0.5px_0_#ffffff40,0_2px_6px_#00000090_inset]">
-            <Link
-              href="/"
-              className="flex rounded-lg outline-none ring-offset-2 ring-offset-[#191919] focus-visible:ring-2 focus-visible:ring-[#555fbb]/45"
-            >
-              <TrxLogo size={26} />
-            </Link>
-          </div>
+          <Link
+            href="/"
+            className="flex shrink-0 rounded-xl outline-none ring-offset-2 ring-offset-[#191919] focus-visible:ring-2 focus-visible:ring-[#555fbb]/45"
+          >
+            <TrxLogo size={26} variant="light" />
+          </Link>
 
-          <nav className="ml-3 flex min-w-0 flex-1 items-center gap-4 sm:ml-6 sm:gap-7">
+          <nav className="ml-3 hidden min-w-0 flex-1 items-center gap-4 sm:ml-6 sm:flex sm:gap-7">
             <NavLink href="/#features">Features</NavLink>
             <NavLink href="/#install">Install</NavLink>
             <NavLink href="/#platforms">Platforms</NavLink>
           </nav>
+          {/* Spacer on mobile so the Install button stays right-aligned */}
+          <div className="flex-1 sm:hidden" />
 
           <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-2.5">
-            <motion.div whileTap={{ scale: 0.97 }} className="inline-block">
-              <div className="rounded-lg bg-[#0d0d0d] p-px shadow-[0_0.5px_0_#ffffff50,0_2px_6px_#00000090_inset]">
-                <a
-                  href="https://github.com/pie-314/trx"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={[
-                    "inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-sm leading-none no-underline outline-none transition-colors",
-                    "text-[#878787] hover:text-[#ebebeb]",
-                    "focus-visible:ring-2 focus-visible:ring-[#555fbb]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0d0d0d]",
-                    "[font-family:var(--font-geist-sans)]",
-                  ].join(" ")}
-                >
-                  <IconGithub className="shrink-0" size={13} />
-                  GitHub
-                </a>
-              </div>
+            <motion.div whileTap={{ scale: 0.97 }} className="hidden sm:inline-block">
+              <a
+                href="https://github.com/pie-314/trx"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={[lightOutlineBtn(), "[font-family:var(--font-geist-sans)]"].join(" ")}
+              >
+                <IconGithub className="shrink-0" size={13} />
+                GitHub
+              </a>
             </motion.div>
 
             <motion.div whileTap={{ scale: 0.97 }} className="inline-block">

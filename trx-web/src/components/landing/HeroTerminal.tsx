@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { insetWell, raisedCrispPanel, RAISED_BORDER, RAISED_GRAD, RAISED_SHADOW } from "@/app/landing-material";
 import { C, S } from "./tokens";
+import { MX } from "./matrix-tokens";
 import { DEMOS, type DemoPkg } from "./demo-data";
 
 export function HeroTerminal() {
@@ -67,17 +68,19 @@ export function HeroTerminal() {
 
   return (
     <div className={raisedCrispPanel("w-full select-none overflow-hidden")}>
-      {/* Title bar */}
-      <div className="flex items-center gap-2 border-b border-white/[0.06] bg-gradient-to-b from-[#242424] to-[#1a1a1a] px-4 py-2.5 shadow-[0_1px_0_#ffffff28_inset]">
+
+      {/* ── Title bar ── */}
+      <div className="flex items-center gap-2 border-b border-white/[0.06] bg-gradient-to-b from-[#242424] to-[#1a1a1a] px-3 py-2.5 shadow-[0_1px_0_#ffffff28_inset] sm:px-4">
         <div className="flex gap-1.5">
           <div className="h-2.5 w-2.5 rounded-full bg-[#7a4040]" />
           <div className="h-2.5 w-2.5 rounded-full bg-[#7a6a40]" />
           <div className="h-2.5 w-2.5 rounded-full bg-[#3d6b40]" />
         </div>
         <div className="flex flex-1 justify-center">
-          <span style={{ ...mono, color: C.text3, fontSize: "12px" }}>trx</span>
+          <span style={{ ...mono, color: C.text3, fontSize: "12px" }}>trx-cli</span>
         </div>
-        <div className="flex gap-0.5">
+        {/* Tabs — hidden on mobile */}
+        <div className="hidden gap-0.5 sm:flex">
           {["Search", "Installed", "Updates"].map((tab, i) => (
             <span key={tab} style={{
               ...mono, fontSize: "11px", padding: "3px 10px", borderRadius: "5px",
@@ -89,11 +92,16 @@ export function HeroTerminal() {
         </div>
       </div>
 
-      {/* Three-panel body */}
-      <div className="flex min-h-[420px] bg-[#101010]">
+      {/* ── Three-panel body ── */}
+      {/*
+        Mobile  (<sm):  package list only
+        sm–lg:          sidebar + package list
+        lg+:            sidebar + package list + detail
+      */}
+      <div className="flex min-h-[360px] bg-[#101010] sm:min-h-[420px]">
 
-        {/* Sidebar */}
-        <div className="flex w-[180px] shrink-0 flex-col border-r border-white/[0.05] bg-[#0e0e0e] py-3 shadow-[inset_-6px_0_12px_-8px_rgba(0,0,0,0.45)]">
+        {/* Sidebar — sm+ only */}
+        <div className="hidden w-[160px] shrink-0 flex-col border-r border-white/[0.05] bg-[#0e0e0e] py-3 shadow-[inset_-6px_0_12px_-8px_rgba(0,0,0,0.45)] sm:flex sm:w-[180px]">
           {[
             { label: "Search",    active: true },
             { label: "Installed", active: false },
@@ -118,40 +126,53 @@ export function HeroTerminal() {
 
         {/* Package list */}
         <div className="flex flex-1 flex-col border-r border-white/[0.05] bg-[#0c0c0c]">
-          <div className="flex items-center gap-2 border-b border-white/[0.05] px-3.5 py-2.5">
+
+          {/* Search bar */}
+          <div className="flex items-center gap-2 border-b border-white/[0.05] px-3 py-2.5 sm:px-3.5">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={C.text3} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
             <span style={{ ...mono, fontSize: "13px", color: C.text }}>{displayQuery}</span>
             <span style={{
               display: "inline-block", width: "6px", height: "13px",
-              background: C.text2, borderRadius: "1px",
+              background: MX.emeraldText, borderRadius: "1px",
               opacity: cursorVis ? 1 : 0, transition: "opacity 0.05s",
             }} />
-            <span style={{ ...mono, fontSize: "11px", color: C.text3, marginLeft: "auto" }}>{demo.packages.length} results</span>
+            {/* Results count — hidden on xs */}
+            <span className="ml-auto hidden sm:inline" style={{ ...mono, fontSize: "11px", color: C.text3 }}>
+              {demo.packages.length} results
+            </span>
           </div>
-          <div className="flex border-b border-white/[0.04] px-3.5 py-1">
+
+          {/* Column headers — hidden on mobile, show version+status only on sm+ */}
+          <div className="hidden border-b border-white/[0.04] px-3.5 py-1 sm:flex">
             <span style={{ ...mono, fontSize: "10px", color: C.text3, flex: 1, textTransform: "uppercase", letterSpacing: "0.08em" }}>Package</span>
             <span style={{ ...mono, fontSize: "10px", color: C.text3, width: "72px", textTransform: "uppercase", letterSpacing: "0.08em" }}>Version</span>
             <span style={{ ...mono, fontSize: "10px", color: C.text3, width: "72px", textTransform: "uppercase", letterSpacing: "0.08em" }}>Status</span>
           </div>
+
+          {/* Package rows */}
           {demo.packages.map((pkg, i) => (
             <div key={`${demoIdx}-${pkg.name}`} style={{
-              display: "flex", alignItems: "center", padding: "7px 14px",
-              background: i === selectedRow ? C.selectionFill : "transparent",
-              borderLeft: `2px solid ${i === selectedRow ? C.selection : "transparent"}`,
+              display: "flex", alignItems: "center",
+              padding: "7px 12px",
+              background: i === selectedRow ? MX.emeraldSubtle : "transparent",
+              borderLeft: `2px solid ${i === selectedRow ? MX.emeraldBright : "transparent"}`,
               transition: "background 0.15s",
             }}>
               <span style={{ color: pkg.checked ? C.installed : C.surface3, fontSize: "8px", marginRight: "8px", flexShrink: 0 }}>●</span>
-              <span style={{ ...mono, fontSize: "13px", flex: 1, color: i === selectedRow ? C.text : C.text2, fontWeight: i === selectedRow ? "500" : "400" }}>{pkg.name}</span>
-              <span style={{ ...mono, fontSize: "12px", color: C.text3, width: "72px" }}>{pkg.version}</span>
-              <span style={{ ...mono, fontSize: "11.5px", color: statusCol(pkg.status), width: "72px" }}>{pkg.status}</span>
+              <span style={{ ...mono, fontSize: "13px", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: i === selectedRow ? C.text : C.text2, fontWeight: i === selectedRow ? "500" : "400" }}>
+                {pkg.name}
+              </span>
+              {/* Version + status — hidden on xs */}
+              <span className="hidden sm:inline" style={{ ...mono, fontSize: "12px", color: C.text3, width: "72px", flexShrink: 0 }}>{pkg.version}</span>
+              <span className="hidden sm:inline" style={{ ...mono, fontSize: "11.5px", color: statusCol(pkg.status), width: "72px", flexShrink: 0 }}>{pkg.status}</span>
             </div>
           ))}
         </div>
 
-        {/* Detail panel */}
-        <div className="flex w-[260px] shrink-0 flex-col gap-3.5 bg-[#101010] p-4">
+        {/* Detail panel — lg+ only */}
+        <div className="hidden w-[240px] shrink-0 flex-col gap-3.5 bg-[#101010] p-4 lg:flex lg:w-[260px]">
           <div>
             <div style={{ ...mono, fontSize: "14px", color: C.text, fontWeight: "600", marginBottom: "4px" }}>{selPkg.name}</div>
             <div style={{ ...mono, fontSize: "11.5px", color: C.text2, lineHeight: "1.6" }}>{detail.desc}</div>
@@ -185,11 +206,16 @@ export function HeroTerminal() {
         </div>
       </div>
 
-      {/* Status bar */}
-      <div className="flex items-center border-t border-white/[0.06] bg-gradient-to-b from-[#1c1c1c] to-[#161616] px-4 py-1 shadow-[0_-1px_0_#ffffff14_inset]" style={{ ...mono, fontSize: "11px" }}>
-        <span style={{ color: C.text, fontWeight: "700", marginRight: "16px", letterSpacing: "0.04em" }}>NORMAL</span>
-        <span style={{ color: C.text3 }}>e:search · space:select · i:install · x:remove · U:upgrade · tab:switch</span>
-        <span style={{ marginLeft: "auto", color: C.text3 }}>{demo.packages.filter(p => p.checked).length} selected · {demo.packages.length} shown</span>
+      {/* ── Status bar ── */}
+      <div className="flex items-center gap-3 border-t border-white/[0.06] bg-gradient-to-b from-[#1c1c1c] to-[#161616] px-3 py-1 shadow-[0_-1px_0_#ffffff14_inset] sm:px-4" style={{ ...mono, fontSize: "11px" }}>
+        <span style={{ color: C.text, fontWeight: "700", letterSpacing: "0.04em", flexShrink: 0 }}>NORMAL</span>
+        {/* Keybindings — hidden on mobile */}
+        <span className="hidden min-w-0 truncate sm:block" style={{ color: C.text3 }}>
+          e:search · space:select · i:install · x:remove · U:upgrade · tab:switch
+        </span>
+        <span className="ml-auto shrink-0" style={{ color: C.text3 }}>
+          {demo.packages.filter(p => p.checked).length} selected · {demo.packages.length} shown
+        </span>
       </div>
     </div>
   );

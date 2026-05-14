@@ -29,6 +29,29 @@ export const POP_SHADOW =
 export const FOCUS_RING =
   "outline-none focus-visible:ring-2 focus-visible:ring-[#555fbb]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#191919]";
 
+/** Focus ring on dark page / header (white controls sit on dark bg) */
+export const FOCUS_RING_ON_DARK =
+  "outline-none focus-visible:ring-2 focus-visible:ring-[#555fbb]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f0f0f]";
+
+/**
+ * Light “terminal line” row: white field, dark text, hairline border.
+ * Used for quick-install curl + install flow step commands.
+ */
+export const LIGHT_COMMAND_ROW =
+  "flex w-full min-w-0 items-center gap-2 rounded-lg border border-black/8 bg-white py-1 pl-3 pr-1.5 font-mono text-[12px] text-[#1a1a1a] shadow-[0_1px_0_rgba(255,255,255,0.9)_inset,0_1px_2px_rgba(0,0,0,0.06)]";
+
+/** Secondary CTA / link chip: same chrome as {@link LIGHT_COMMAND_ROW} (sans mono). */
+export function lightOutlineBtn(extra?: string) {
+  return [
+    "inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-black/8 bg-white px-3 text-sm font-medium leading-none text-[#1a1a1a] shadow-[0_1px_0_rgba(255,255,255,0.9)_inset,0_1px_2px_rgba(0,0,0,0.06)]",
+    "no-underline transition-colors hover:bg-[#f6f6f6] hover:text-[#0a0a0a] active:scale-[0.97]",
+    FOCUS_RING_ON_DARK,
+    extra,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
 export function raisedPanel(extra?: string) {
   return ["rounded-2xl", RAISED_GRAD, RAISED_BORDER, RAISED_SHADOW, extra].filter(Boolean).join(" ");
 }

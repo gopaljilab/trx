@@ -1,8 +1,19 @@
 import { MAX_W } from "./tokens";
 
-export function Container({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+export function Container({
+  children,
+  className = "",
+  style,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
   return (
-    <div style={{ maxWidth: MAX_W, margin: "0 auto", padding: "0 40px", ...style }}>
+    <div
+      className={`mx-auto box-border w-full max-w-[1280px] px-4 sm:px-6 lg:px-10 ${className}`}
+      style={{ maxWidth: MAX_W, ...style }}
+    >
       {children}
     </div>
   );

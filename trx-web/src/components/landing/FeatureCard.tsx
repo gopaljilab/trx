@@ -2,6 +2,7 @@
 
 import { insetWell, raisedPanel } from "@/app/landing-material";
 import { C } from "./tokens";
+import { ScrambleText } from "./ScrambleText";
 
 export function FeatureCard({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
   return (
@@ -19,7 +20,7 @@ export function FeatureCard({ icon, title, desc }: { icon: React.ReactNode; titl
           className="min-w-0 flex-1 font-semibold leading-snug tracking-tight text-[#ebebeb] [font-family:var(--font-geist-sans)]"
           style={{ fontSize: "14px", margin: 0 }}
         >
-          {title}
+          <ScrambleText text={title} duration={700} />
         </h3>
       </div>
       <p

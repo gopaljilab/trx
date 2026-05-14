@@ -60,7 +60,7 @@ export default function OgImage() {
                 letterSpacing: "-0.02em",
               }}
             >
-              [<span style={{ color: "#5d9960" }}>trx</span>]
+              [<span style={{ color: "#5d9960" }}>trx-cli</span>]
             </span>
           </div>
           <div
