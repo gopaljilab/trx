@@ -1,7 +1,7 @@
-use super::{pacman, yay};
-use crate::managers::{Package, PackageManager};
-use ratatui::DefaultTerminal;
 use std::collections::{HashMap, HashSet};
+use crate::managers::{Package, PackageManager};
+use super::{pacman, yay};
+use ratatui::DefaultTerminal;
 
 pub struct ArchManager {
     pub aur_helper: String,
@@ -19,14 +19,49 @@ impl PackageManager for ArchManager {
     }
 
     fn search(&self, query: &str) -> Vec<Package> {
-        let mut all = pacman::search_pacman(query);
-        all.extend(yay::search_aur(query, &self.aur_helper));
+        // Check cache
+        {
+            let cache = crate::managers::SEARCH_CACHE.lock().unwrap();
+            if let Some(cached) = cache.get(query) {
+                return cached.clone();
+            }
+        }
+
+        let config = crate::config::Config::load();
+        let enabled = &config.settings.enabled_managers;
+        let show_pacman = enabled.contains(&"pacman".to_string());
+        let show_yay = enabled.contains(&"yay".to_string());
+
+        use rayon::prelude::*;
+
+        let results: Vec<Vec<Package>> = vec![0, 1]
+            .into_par_iter()
+            .map(|i| {
+                if i == 0 && show_pacman {
+                    pacman::search_pacman(query)
+                } else if i == 1 && show_yay {
+                    yay::search_aur(query, &self.aur_helper)
+                } else {
+                    Vec::new()
+                }
+            })
+            .collect();
+
+        let mut all: Vec<Package> = results.into_iter().flatten().collect();
         all.sort_by(|a, b| {
             b.score
                 .partial_cmp(&a.score)
                 .unwrap_or(std::cmp::Ordering::Equal)
         });
-        all.truncate(50);
+        
+        all.truncate(config.settings.max_search_results);
+
+        // Update cache
+        {
+            let mut cache = crate::managers::SEARCH_CACHE.lock().unwrap();
+            cache.insert(query.to_string(), all.clone());
+        }
+
         all
     }
 
@@ -53,7 +88,7 @@ impl PackageManager for ArchManager {
 
         let pure_name = pkg.split('/').last().unwrap_or(pkg);
         let provide = provider.split('/').next().unwrap_or(provider);
-
+        
         let info = match provide {
             "aur" => yay::aur_details(pure_name)?,
             "pacman" => pacman::pacman_info(pure_name)?,
@@ -69,11 +104,7 @@ impl PackageManager for ArchManager {
         Some(info)
     }
 
-    fn install(
-        &self,
-        terminal: &mut DefaultTerminal,
-        pkgs: &HashSet<String>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    fn install(&self, terminal: &mut DefaultTerminal, pkgs: &HashSet<String>) -> Result<(), Box<dyn std::error::Error>> {
         let mut pacman_pkgs = HashSet::new();
         let mut aur_pkgs = HashSet::new();
 
@@ -97,27 +128,24 @@ impl PackageManager for ArchManager {
         Ok(())
     }
 
-    fn remove(
-        &self,
-        terminal: &mut DefaultTerminal,
-        pkgs: &HashSet<String>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    fn remove(&self, terminal: &mut DefaultTerminal, pkgs: &HashSet<String>) -> Result<(), Box<dyn std::error::Error>> {
         pacman::pacman_remove(terminal, pkgs)
     }
 
-    fn system_upgrade(
-        &self,
-        terminal: &mut DefaultTerminal,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        pacman::system_upgrade(terminal)?;
-        yay::aur_upgrade(terminal, &self.aur_helper)?;
+    fn system_upgrade(&self, terminal: &mut DefaultTerminal) -> Result<(), Box<dyn std::error::Error>> {
+        let config = crate::config::Config::load();
+        let enabled = &config.settings.enabled_managers;
+        
+        if enabled.contains(&"pacman".to_string()) {
+            pacman::system_upgrade(terminal)?;
+        }
+        if enabled.contains(&"yay".to_string()) {
+            yay::aur_upgrade(terminal, &self.aur_helper)?;
+        }
         Ok(())
     }
 
-    fn refresh_databases(
-        &self,
-        terminal: &mut DefaultTerminal,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    fn refresh_databases(&self, terminal: &mut DefaultTerminal) -> Result<(), Box<dyn std::error::Error>> {
         pacman::refresh_databases(terminal)
     }
 }

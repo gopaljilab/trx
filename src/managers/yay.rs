@@ -1,7 +1,6 @@
 use crate::execute_external_command;
 use ratatui::DefaultTerminal;
 use std::collections::{HashMap, HashSet};
-use std::process::Command;
 
 use super::Package;
 
@@ -18,23 +17,47 @@ fn normalize_aur_value(v: &serde_json::Value) -> String {
     }
 }
 
-pub fn search_aur(search_word: &str, aur_helper: &str) -> Vec<Package> {
-    if search_word.trim().is_empty() {
+pub fn search_aur(search_word: &str, _aur_helper: &str) -> Vec<Package> {
+    if search_word.trim().len() < 2 {
         return Vec::new();
     }
 
-    let output = Command::new(aur_helper)
-        .args(&["-Ss", search_word])
-        .output();
+    let url = format!(
+        "https://aur.archlinux.org/rpc/?v=5&type=search&arg={}",
+        urlencoding::encode(search_word)
+    );
 
-    match output {
-        Ok(output) if output.status.success() => {
-            let s = String::from_utf8_lossy(&output.stdout);
-            let lines: Vec<&str> = s.lines().collect();
-            super::parse_alternating_lines(&lines, "aur".into(), search_word)
+    let resp = match reqwest::blocking::get(url) {
+        Ok(r) => r,
+        Err(_) => return Vec::new(),
+    };
+
+    let json: serde_json::Value = match resp.json() {
+        Ok(j) => j,
+        Err(_) => return Vec::new(),
+    };
+
+    let mut results = Vec::new();
+    if let Some(arr) = json["results"].as_array() {
+        for item in arr {
+            let name = item["Name"].as_str().unwrap_or("").to_string();
+            let version = item["Version"].as_str().unwrap_or("").to_string();
+            let description = item["Description"].as_str().unwrap_or("").to_string();
+            
+            let score = crate::fuzzy::fuzzy_match(search_word, &name);
+            
+            results.push(Package {
+                provider: "aur".to_string(),
+                name,
+                version,
+                description,
+                score,
+            });
         }
-        _ => Vec::new(),
     }
+
+    results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+    results
 }
 
 pub fn aur_details(pkg: &str) -> Option<HashMap<String, String>> {
