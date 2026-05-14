@@ -1,11 +1,15 @@
 [package]
-name = "trx"
-version = "0.1.8"
+name = "trx-cli"
+version = "0.1.9"
 edition = "2024"
 description = "A Modern Cross-Platform Package Manager TUI"
 license = "MIT"
 repository = "https://github.com/pie-314/trx"
 homepage = "https://github.com/pie-314/trx"
+
+[[bin]]
+name = "trx"
+path = "src/main.rs"
 
 [dependencies]
 color-eyre = "0.6.5"
