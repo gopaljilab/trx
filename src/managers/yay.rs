@@ -1,7 +1,6 @@
 use crate::execute_external_command;
 use ratatui::DefaultTerminal;
 use std::collections::{HashMap, HashSet};
-use std::process::Command;
 
 use super::Package;
 
