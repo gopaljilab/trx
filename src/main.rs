@@ -48,23 +48,6 @@ fn main() -> Result<()> {
         }
     }
 
-    // Check for updates
-    println!("Checking for updates...");
-    if let Some((version, url)) = updater::check_for_updates() {
-        println!("New version found: {}. Updating...", version);
-        match updater::update_self(&url) {
-            Ok(_) => {
-                println!("Update complete. Please restart trx.");
-                return Ok(());
-            }
-            Err(e) => {
-                eprintln!("Failed to update: {}. Continuing with current version...", e);
-            }
-        }
-    } else {
-        println!("Already up to date.");
-    }
-
     color_eyre::install()?;
     let mut terminal = init();
     execute!(std::io::stdout(), EnableMouseCapture)?;
@@ -73,7 +56,23 @@ fn main() -> Result<()> {
     let app_result = App::new(result_tx.clone(), result_rx).run(&mut terminal);
     execute!(std::io::stdout(), DisableMouseCapture)?;
     restore();
-    app_result
+
+    match app_result {
+        Ok(Some(url)) => {
+            println!("Downloading update...");
+            match updater::update_self(&url) {
+                Ok(_) => {
+                    println!("Update complete. Please restart trx.");
+                }
+                Err(e) => {
+                    eprintln!("Failed to update: {}", e);
+                }
+            }
+            Ok(())
+        }
+        Ok(None) => Ok(()),
+        Err(e) => Err(e.into()),
+    }
 }
 
 pub fn execute_external_command(

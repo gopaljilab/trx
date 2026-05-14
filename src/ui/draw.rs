@@ -74,6 +74,44 @@ pub fn draw_ui(frame: &mut Frame, app: &mut App) {
     if app.show_help {
         draw_help_overlay(frame, app);
     }
+
+    if app.update_prompt.is_some() {
+        draw_update_prompt(frame, app);
+    }
+}
+
+fn draw_update_prompt(frame: &mut Frame, app: &App) {
+    let area = centered_rect(40, 20, frame.area());
+    frame.render_widget(Clear, area);
+
+    let (version, _) = app.update_prompt.as_ref().unwrap();
+    let current_version = env!("CARGO_PKG_VERSION");
+
+    let text = vec![
+        Line::from(vec![Span::raw(format!("Version {} -> {}", current_version, version))]),
+        Line::from(""),
+        Line::from("Do you want to update?"),
+        Line::from(""),
+        Line::from(vec![
+            if app.update_selected_yes {
+                Span::styled(" [ Yes ] ", Style::default().bg(Color::Green).fg(Color::Black).add_modifier(Modifier::BOLD))
+            } else {
+                Span::raw(" [ Yes ] ")
+            },
+            Span::raw("    "),
+            if !app.update_selected_yes {
+                Span::styled(" [ No ] ", Style::default().bg(Color::Red).fg(Color::Black).add_modifier(Modifier::BOLD))
+            } else {
+                Span::raw(" [ No ] ")
+            },
+        ]),
+    ];
+
+    let paragraph = Paragraph::new(text)
+        .block(Block::bordered().title("Update Available").border_type(BorderType::Thick))
+        .alignment(ratatui::layout::Alignment::Center);
+
+    frame.render_widget(paragraph, area);
 }
 
 fn draw_help_header(frame: &mut Frame, app: &App, area: Rect) {

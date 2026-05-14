@@ -45,12 +45,16 @@ pub struct App {
     pub details_state: DetailsState,
     pub last_selected: usize,
     pub show_help: bool,
+    pub update_prompt: Option<(String, String)>, // (version, url)
+    pub update_selected_yes: bool,
+    pub should_update: Option<String>, // if user said yes, url to update
     pub spinner_tick: u8,
     pub manager: Arc<Box<dyn managers::PackageManager>>,
     result_tx: Sender<(String, Vec<Package>)>,
     result_rx: Receiver<(String, Vec<Package>)>,
     details_tx: Sender<DetailsState>,
     details_rx: Receiver<DetailsState>,
+    update_rx: Receiver<Option<(String, String)>>,
     last_input_time: Instant,
     pending_search: bool,
     last_search_query: String,
@@ -62,6 +66,14 @@ impl App {
         list_state.select(None);
 
         let (details_tx, details_rx) = std::sync::mpsc::channel();
+        let (update_tx, update_rx) = std::sync::mpsc::channel();
+        
+        // Spawn parallel update check
+        thread::spawn(move || {
+            let res = crate::updater::check_for_updates();
+            let _ = update_tx.send(res);
+        });
+
         let config = crate::config::Config::load();
         let manager = Arc::new(managers::get_system_manager(&config));
 
@@ -81,12 +93,16 @@ impl App {
             details_state: DetailsState::Empty,
             last_selected: usize::MAX,
             show_help: false,
+            update_prompt: None,
+            update_selected_yes: true,
+            should_update: None,
             spinner_tick: 0,
             manager,
             result_tx,
             result_rx,
             details_tx,
             details_rx,
+            update_rx,
             last_input_time: Instant::now(),
             pending_search: false,
             last_search_query: String::new(),
@@ -279,7 +295,7 @@ impl App {
         });
     }
 
-    pub fn run(mut self, terminal: &mut DefaultTerminal) -> Result<()> {
+    pub fn run(mut self, terminal: &mut DefaultTerminal) -> Result<Option<String>> {
         loop {
             if let Tab::Search = self.current_tab {
                 self.check_and_execute_search();
@@ -287,6 +303,13 @@ impl App {
 
             if self.loading || matches!(self.details_state, DetailsState::Loading) {
                 self.spinner_tick = self.spinner_tick.wrapping_add(1);
+            }
+
+            // check for update prompt response
+            if self.update_prompt.is_none() && self.should_update.is_none() {
+                if let Ok(Some(update)) = self.update_rx.try_recv() {
+                    self.update_prompt = Some(update);
+                }
             }
 
             // check search results
@@ -337,6 +360,27 @@ impl App {
                 let ev = event::read()?;
                 match ev {
                     Event::Key(key) => {
+                        if self.update_prompt.is_some() {
+                            if key.kind == KeyEventKind::Press {
+                                match key.code {
+                                    KeyCode::Left | KeyCode::Right | KeyCode::Tab => {
+                                        self.update_selected_yes = !self.update_selected_yes;
+                                    }
+                                    KeyCode::Enter => {
+                                        let (_, url) = self.update_prompt.take().unwrap();
+                                        if self.update_selected_yes {
+                                            return Ok(Some(url));
+                                        }
+                                    }
+                                    KeyCode::Esc | KeyCode::Char('q') => {
+                                        self.update_prompt = None;
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            continue;
+                        }
+
                         match self.input_mode {
                             InputMode::Normal if key.kind == KeyEventKind::Press => match key.code {
                             KeyCode::BackTab => {
@@ -394,7 +438,7 @@ impl App {
                                 }
                             }
                             KeyCode::Char('e') => self.input_mode = InputMode::Editing,
-                            KeyCode::Char('q') => return Ok(()),
+                            KeyCode::Char('q') => return Ok(None),
                             KeyCode::Char('?') => self.show_help = !self.show_help,
 
                             KeyCode::Up | KeyCode::Char('k') => {
