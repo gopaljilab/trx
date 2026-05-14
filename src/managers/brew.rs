@@ -111,7 +111,69 @@ impl PackageManager for BrewManager {
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         let mut out = HashMap::new();
-        out.insert("Info".to_string(), stdout.to_string());
+        
+        let lines: Vec<&str> = stdout.lines().collect();
+        if lines.is_empty() {
+            return None;
+        }
+
+        // Line 1: name: version (status)
+        if let Some(first_line) = lines.get(0) {
+            let parts: Vec<&str> = first_line.splitn(2, ':').collect();
+            if parts.len() == 2 {
+                out.insert("Name".into(), parts[0].trim().into());
+                out.insert("Version".into(), parts[1].trim().into());
+            } else {
+                out.insert("Info".into(), first_line.trim().into());
+            }
+        }
+
+        // Line 2: Description
+        if let Some(second_line) = lines.get(1) {
+            out.insert("Description".into(), second_line.trim().into());
+        }
+
+        // Line 3: URL
+        if let Some(third_line) = lines.get(2) {
+            out.insert("URL".into(), third_line.trim().into());
+        }
+
+        // Subsequent lines: License, From, Caveats, etc.
+        let mut caveats = Vec::new();
+        let mut in_caveats = false;
+        let mut analytics = Vec::new();
+        let mut in_analytics = false;
+
+        for line in lines.iter().skip(3) {
+            let l = line.trim();
+            if l.is_empty() { continue; }
+
+            if l.starts_with("License:") {
+                out.insert("License".into(), l.replace("License:", "").trim().into());
+            } else if l.starts_with("From:") {
+                out.insert("From".into(), l.replace("From:", "").trim().into());
+            } else if l.starts_with("==> Caveats") {
+                in_caveats = true;
+                in_analytics = false;
+            } else if l.starts_with("==> Analytics") {
+                in_analytics = true;
+                in_caveats = false;
+            } else if l.starts_with("==>") {
+                in_caveats = false;
+                in_analytics = false;
+            } else if in_caveats {
+                caveats.push(l);
+            } else if in_analytics {
+                analytics.push(l);
+            }
+        }
+
+        if !caveats.is_empty() {
+            out.insert("Caveats".into(), caveats.join(" "));
+        }
+        if !analytics.is_empty() {
+            out.insert("Analytics".into(), analytics.join(" | "));
+        }
 
         // Update cache
         {
