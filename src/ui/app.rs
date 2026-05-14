@@ -19,6 +19,7 @@ pub enum Tab {
     Search,
     Installed,
     Updates,
+    Settings,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -235,7 +236,8 @@ impl App {
         self.current_tab = match self.current_tab {
             Tab::Search => Tab::Installed,
             Tab::Installed => Tab::Updates,
-            Tab::Updates => Tab::Search,
+            Tab::Updates => Tab::Settings,
+            Tab::Settings => Tab::Search,
         };
 
         self.reset_tab_state();
@@ -243,9 +245,10 @@ impl App {
 
     fn switch_tab_previous(&mut self) {
         self.current_tab = match self.current_tab {
-            Tab::Search => Tab::Updates,
+            Tab::Search => Tab::Settings,
             Tab::Installed => Tab::Search,
             Tab::Updates => Tab::Installed,
+            Tab::Settings => Tab::Updates,
         };
 
         self.reset_tab_state();
@@ -281,6 +284,9 @@ impl App {
                     let pkgs = manager.get_updates();
                     let _ = tx.send(("__UPDATES__".to_string(), pkgs));
                 });
+            }
+            Tab::Settings => {
+                self.loading = false;
             }
         }
     }
@@ -334,6 +340,7 @@ impl App {
                     Tab::Search => q == self.input.trim(),
                     Tab::Installed => q == "__INSTALLED__",
                     Tab::Updates => q == "__UPDATES__",
+                    Tab::Settings => false,
                 };
 
                 if is_current_tab_result {
@@ -415,6 +422,17 @@ impl App {
                                     }
                                 };
 
+                                if self.show_help {
+                                    if is_key(key.code, &keys.help) || key.code == KeyCode::Esc {
+                                        self.show_help = false;
+                                        continue;
+                                    }
+                                    if is_key(key.code, &keys.quit) {
+                                        return Ok(None);
+                                    }
+                                    self.show_help = false;
+                                }
+
                                 if is_key(key.code, &keys.quit) {
                                     return Ok(None);
                                 } else if is_key(key.code, &keys.help) {
@@ -459,6 +477,7 @@ impl App {
                                         if is_checked { self.selected_names.insert(name); } else { self.selected_names.remove(&name); }
                                     }
                                 } else if is_key(key.code, &keys.search_edit) {
+                                    self.show_help = false;
                                     self.input_mode = InputMode::Editing;
                                 } else {
                                     match key.code {

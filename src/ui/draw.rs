@@ -39,36 +39,41 @@ pub fn draw_ui(frame: &mut Frame, app: &mut App) {
     draw_help_header(frame, app, help_area_root);
     draw_tabs(frame, app, tabs_area);
 
-    // Responsive layout for content area
-    let is_wide = content_area.width >= 100;
-    let constraints = if is_wide {
-        [Constraint::Percentage(50), Constraint::Percentage(50)]
+    if let crate::ui::app::Tab::Settings = app.current_tab {
+        draw_settings_tab(frame, app, content_area);
     } else {
-        [Constraint::Percentage(60), Constraint::Percentage(40)]
-    };
-    let direction = if is_wide { Direction::Horizontal } else { Direction::Vertical };
+        // Responsive layout for content area
+        let is_wide = content_area.width >= 100;
+        let constraints = if is_wide {
+            [Constraint::Percentage(50), Constraint::Percentage(50)]
+        } else {
+            [Constraint::Percentage(60), Constraint::Percentage(40)]
+        };
+        let direction = if is_wide { Direction::Horizontal } else { Direction::Vertical };
 
-    let content_layout = Layout::new(direction, constraints).split(content_area);
-    let search_area = content_layout[0];
-    let details_area = content_layout[1];
+        let content_layout = Layout::new(direction, constraints).split(content_area);
+        let search_area = content_layout[0];
+        let details_area = content_layout[1];
 
-    let (input_area, list_area) = if let crate::ui::app::Tab::Search = app.current_tab {
-        let vertical_search = Layout::vertical([
-            Constraint::Length(3), // Input
-            Constraint::Min(1),    // List
-        ]);
-        let [i, l] = vertical_search.areas(search_area);
-        (Some(i), l)
-    } else {
-        (None, search_area)
-    };
+        let (input_area, list_area) = if let crate::ui::app::Tab::Search = app.current_tab {
+            let vertical_search = Layout::vertical([
+                Constraint::Length(3), // Input
+                Constraint::Min(1),    // List
+            ]);
+            let [i, l] = vertical_search.areas(search_area);
+            (Some(i), l)
+        } else {
+            (None, search_area)
+        };
 
-    if let Some(i_area) = input_area {
-        draw_search_input(frame, app, i_area);
+        if let Some(i_area) = input_area {
+            draw_search_input(frame, app, i_area);
+        }
+
+        draw_package_list(frame, app, list_area);
+        draw_details(frame, app, details_area);
     }
-
-    draw_package_list(frame, app, list_area);
-    draw_details(frame, app, details_area);
+    
     draw_status_bar(frame, app, status_area);
 
     if app.show_help {
@@ -153,16 +158,75 @@ fn draw_tabs(frame: &mut Frame, app: &App, area: Rect) {
     let theme = &app.config.theme;
     let highlight_color = app.config.get_color(&theme.highlight_color);
 
-    let tab_titles = vec!["Search", "Installed", "Updates"];
+    let tab_titles = vec!["Search", "Installed", "Updates", "Settings"];
     let tabs = ratatui::widgets::Tabs::new(tab_titles)
         .block(Block::bordered().title("Views").border_style(Style::default().fg(app.config.get_color(&theme.border_color))))
         .select(match app.current_tab {
             crate::ui::app::Tab::Search => 0,
             crate::ui::app::Tab::Installed => 1,
             crate::ui::app::Tab::Updates => 2,
+            crate::ui::app::Tab::Settings => 3,
         })
         .highlight_style(Style::default().fg(highlight_color).add_modifier(Modifier::BOLD));
     frame.render_widget(tabs, area);
+}
+
+fn draw_settings_tab(frame: &mut Frame, app: &App, area: Rect) {
+    let theme = &app.config.theme;
+    let highlight_color = app.config.get_color(&theme.highlight_color);
+    let border_color = app.config.get_color(&theme.border_color);
+    let primary_color = app.config.get_color(&theme.text_primary);
+
+    let mut settings_lines = Vec::new();
+    
+    // Config Path
+    if let Some(proj_dirs) = directories::ProjectDirs::from("", "", "trx") {
+        let config_path = proj_dirs.config_dir().join("config.toml");
+        settings_lines.push(Line::from(vec![
+            Span::styled("Config Path: ", Style::default().fg(highlight_color).add_modifier(Modifier::BOLD)),
+            Span::raw(config_path.to_string_lossy().to_string()),
+        ]));
+        settings_lines.push(Line::from(""));
+    }
+
+    // Settings
+    settings_lines.push(Line::from(Span::styled("--- Settings ---", Style::default().fg(highlight_color).add_modifier(Modifier::BOLD))));
+    settings_lines.push(Line::from(format!("AUR Helper        : {}", app.config.aur_helper)));
+    settings_lines.push(Line::from(format!("Search Debounce   : {}ms", app.config.settings.search_debounce_ms)));
+    settings_lines.push(Line::from(format!("Auto Update Check : {}", app.config.settings.auto_update_check)));
+    settings_lines.push(Line::from(format!("Default Tab       : {}", app.config.settings.default_tab)));
+    settings_lines.push(Line::from(format!("Max Results       : {}", app.config.settings.max_search_results)));
+    settings_lines.push(Line::from(""));
+
+    // Keybindings
+    let keys = &app.config.keys;
+    settings_lines.push(Line::from(Span::styled("--- Keybindings ---", Style::default().fg(highlight_color).add_modifier(Modifier::BOLD))));
+    settings_lines.push(Line::from(format!("Quit              : {}", keys.quit)));
+    settings_lines.push(Line::from(format!("Install           : {}", keys.install)));
+    settings_lines.push(Line::from(format!("Remove            : {}", keys.remove)));
+    settings_lines.push(Line::from(format!("Search Edit       : {}", keys.search_edit)));
+    settings_lines.push(Line::from(format!("Toggle Select     : {}", keys.toggle_select)));
+    settings_lines.push(Line::from(format!("Tab Next          : {}", keys.tab_next)));
+    settings_lines.push(Line::from(format!("Tab Prev          : {}", keys.tab_prev)));
+    settings_lines.push(Line::from(""));
+
+    // Theme
+    settings_lines.push(Line::from(Span::styled("--- Theme ---", Style::default().fg(highlight_color).add_modifier(Modifier::BOLD))));
+    settings_lines.push(Line::from(format!("Border Color      : {}", theme.border_color)));
+    settings_lines.push(Line::from(format!("Highlight Color   : {}", theme.highlight_color)));
+    settings_lines.push(Line::from(format!("Success Color     : {}", theme.success_color)));
+    settings_lines.push(Line::from(format!("Error Color       : {}", theme.error_color)));
+    settings_lines.push(Line::from(format!("Text Primary      : {}", theme.text_primary)));
+    settings_lines.push(Line::from(format!("Text Secondary    : {}", theme.text_secondary)));
+
+    let paragraph = Paragraph::new(settings_lines)
+        .block(Block::bordered()
+            .title("Configuration Summary")
+            .border_style(Style::default().fg(border_color)))
+        .style(Style::default().fg(primary_color))
+        .wrap(Wrap { trim: false });
+
+    frame.render_widget(paragraph, area);
 }
 
 fn draw_search_input(frame: &mut Frame, app: &App, area: Rect) {
@@ -186,6 +250,7 @@ fn draw_search_input(frame: &mut Frame, app: &App, area: Rect) {
         }
         crate::ui::app::Tab::Installed => "Installed Packages".to_string(),
         crate::ui::app::Tab::Updates => "Available Updates".to_string(),
+        crate::ui::app::Tab::Settings => "Settings".to_string(),
     };
 
     let input = Paragraph::new(app.input.as_str())
