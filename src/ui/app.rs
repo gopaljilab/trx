@@ -5,6 +5,7 @@ use ratatui::{
     DefaultTerminal,
     crossterm::event::{self, Event, KeyCode, KeyEventKind},
     widgets::ListState,
+    style::Color,
 };
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -52,6 +53,10 @@ pub struct App {
     pub spinner_tick: u8,
     pub manager: Arc<Box<dyn managers::PackageManager>>,
     pub config: crate::config::Config,
+    pub settings_index: usize,
+    pub details_scroll: u16,
+    pub available_managers: Vec<String>,
+    pub popup_message: Option<(String, Color)>, // (message, color)
     result_tx: Sender<(String, Vec<Package>)>,
     result_rx: Receiver<(String, Vec<Package>)>,
     details_tx: Sender<DetailsState>,
@@ -60,6 +65,7 @@ pub struct App {
     last_input_time: Instant,
     pending_search: bool,
     last_search_query: String,
+    pub popup_timer: Option<Instant>,
 }
 
 impl App {
@@ -80,6 +86,7 @@ impl App {
         }
 
         let manager = Arc::new(managers::get_system_manager(&config));
+        let available_managers = managers::get_available_managers();
 
         let current_tab = match config.settings.default_tab.as_str() {
             "Installed" => Tab::Installed,
@@ -91,14 +98,13 @@ impl App {
             input: String::new(),
             input_mode: InputMode::Normal,
             current_tab,
-            messages: Vec::new(),
-            character_index: 0,
             packages: Vec::new(),
             checked: Vec::new(),
             selected_names: HashSet::new(),
             installed_packages: manager.get_installed(),
             selected: 0,
             list_state,
+            messages: Vec::new(),
             loading: false,
             details_state: DetailsState::Empty,
             last_selected: usize::MAX,
@@ -109,6 +115,12 @@ impl App {
             spinner_tick: 0,
             manager,
             config,
+            settings_index: 0,
+            details_scroll: 0,
+            character_index: 0,
+            available_managers,
+            popup_message: None,
+            popup_timer: None,
             result_tx,
             result_rx,
             details_tx,
@@ -124,6 +136,11 @@ impl App {
         }
 
         app
+    }
+
+    pub fn set_popup(&mut self, msg: String, color: Color) {
+        self.popup_message = Some((msg, color));
+        self.popup_timer = Some(Instant::now());
     }
 
     fn move_cursor_left(&mut self) {
@@ -262,6 +279,7 @@ impl App {
         self.selected = 0;
         self.list_state.select(None);
         self.details_state = DetailsState::Empty;
+        self.details_scroll = 0;
 
         match self.current_tab {
             Tab::Search => {
@@ -306,6 +324,7 @@ impl App {
         let manager = self.manager.clone();
         self.last_selected = self.selected;
         self.details_state = DetailsState::Loading;
+        self.details_scroll = 0;
 
         thread::spawn(move || {
             let info = manager.get_details(&pkg.name, &pkg.provider);
@@ -315,6 +334,52 @@ impl App {
                 let _ = tx.send(DetailsState::Error("Failed to fetch details".to_string()));
             }
         });
+    }
+
+    fn toggle_manager(&mut self, name: &str) {
+        if self.config.settings.enabled_managers.contains(&name.to_string()) {
+            if self.config.settings.enabled_managers.len() > 1 {
+                self.config.settings.enabled_managers.retain(|m| m != name);
+                self.set_popup(format!("Disabled {}", name), Color::Yellow);
+            } else {
+                self.set_popup("Must have at least one manager enabled".to_string(), Color::Red);
+            }
+        } else {
+            self.config.settings.enabled_managers.push(name.to_string());
+            self.set_popup(format!("Enabled {}", name), Color::Green);
+        }
+        let _ = self.config.save();
+        // Re-initialize manager
+        self.manager = Arc::new(managers::get_system_manager(&self.config));
+        
+        // Refresh current list if applicable
+        if self.current_tab != Tab::Settings {
+            self.reset_tab_state();
+        }
+    }
+
+    fn next_theme(&mut self) {
+        let themes = vec!["Default", "Nord", "Dracula", "OneDark", "Gruvbox", "Solarized", "Custom"];
+        let current_pos = themes.iter().position(|&t| t == self.config.theme_name).unwrap_or(0);
+        let next_pos = (current_pos + 1) % themes.len();
+        self.config.theme_name = themes[next_pos].to_string();
+        if self.config.theme_name == "Custom" && self.config.custom_theme.is_none() {
+            self.config.custom_theme = Some(self.config.theme.clone());
+        }
+        let _ = self.config.save();
+        self.set_popup(format!("Theme: {}", self.config.theme_name), Color::Cyan);
+    }
+
+    fn prev_theme(&mut self) {
+        let themes = vec!["Default", "Nord", "Dracula", "OneDark", "Gruvbox", "Solarized", "Custom"];
+        let current_pos = themes.iter().position(|&t| t == self.config.theme_name).unwrap_or(0);
+        let next_pos = if current_pos == 0 { themes.len() - 1 } else { current_pos - 1 };
+        self.config.theme_name = themes[next_pos].to_string();
+        if self.config.theme_name == "Custom" && self.config.custom_theme.is_none() {
+            self.config.custom_theme = Some(self.config.theme.clone());
+        }
+        let _ = self.config.save();
+        self.set_popup(format!("Theme: {}", self.config.theme_name), Color::Cyan);
     }
 
     pub fn run(mut self, terminal: &mut DefaultTerminal) -> Result<Option<String>> {
@@ -375,6 +440,13 @@ impl App {
             // check details results
             if let Ok(state) = self.details_rx.try_recv() {
                 self.details_state = state;
+            }
+
+            if let Some(timer) = self.popup_timer {
+                if timer.elapsed() > Duration::from_secs(3) {
+                    self.popup_message = None;
+                    self.popup_timer = None;
+                }
             }
 
             terminal.draw(|frame| draw_ui(frame, &mut self))?;
@@ -449,27 +521,29 @@ impl App {
                                     let _ = self.run_command(terminal);
                                     self.installed_packages = self.manager.get_installed();
                                     if let Tab::Installed = self.current_tab {
-                                        self.packages = self.manager.get_installed_details();
+                                        self.reset_tab_state();
                                     }
                                 } else if is_key(key.code, &keys.remove) {
                                     let _ = self.run_remove_command(terminal);
                                     self.installed_packages = self.manager.get_installed();
                                     if let Tab::Installed = self.current_tab {
-                                        self.packages = self.manager.get_installed_details();
+                                        self.reset_tab_state();
                                     }
                                 } else if is_key(key.code, &keys.system_upgrade) {
                                     let _ = self.manager.system_upgrade(terminal);
                                     self.installed_packages = self.manager.get_installed();
                                     if let Tab::Updates = self.current_tab {
-                                        self.packages = self.manager.get_updates();
+                                        self.reset_tab_state();
                                     }
                                 } else if is_key(key.code, &keys.refresh_db) {
                                     let _ = self.manager.refresh_databases(terminal);
                                     if let Tab::Updates = self.current_tab {
-                                        self.packages = self.manager.get_updates();
+                                        self.reset_tab_state();
                                     }
                                 } else if is_key(key.code, &keys.toggle_select) {
-                                    if !self.packages.is_empty() {
+                                    if self.current_tab == Tab::Settings {
+                                        self.handle_settings_toggle();
+                                    } else if !self.packages.is_empty() {
                                         let pkg = &self.packages[self.selected];
                                         let name = pkg.name.clone();
                                         let is_checked = !self.checked[self.selected];
@@ -481,18 +555,52 @@ impl App {
                                     self.input_mode = InputMode::Editing;
                                 } else {
                                     match key.code {
+                                        KeyCode::Left | KeyCode::Char('h') => {
+                                            if self.current_tab == Tab::Settings {
+                                                let mgr_count = self.available_managers.len();
+                                                if self.settings_index == 5 + mgr_count {
+                                                    self.prev_theme();
+                                                } else if self.settings_index == 1 || (self.settings_index >= 5 && self.settings_index < 5 + mgr_count) {
+                                                    self.handle_settings_toggle();
+                                                }
+                                            }
+                                        }
+                                        KeyCode::Right | KeyCode::Char('l') => {
+                                            if self.current_tab == Tab::Settings {
+                                                let mgr_count = self.available_managers.len();
+                                                if self.settings_index == 5 + mgr_count {
+                                                    self.next_theme();
+                                                } else if self.settings_index == 1 || (self.settings_index >= 5 && self.settings_index < 5 + mgr_count) {
+                                                    self.handle_settings_toggle();
+                                                }
+                                            }
+                                        }
                                         KeyCode::Up | KeyCode::Char('k') => {
-                                            if self.selected > 0 {
+                                            if self.current_tab == Tab::Settings {
+                                                if self.settings_index > 0 {
+                                                    self.settings_index -= 1;
+                                                }
+                                            } else if self.selected > 0 {
                                                 self.selected -= 1;
                                                 self.list_state.select(Some(self.selected));
                                                 self.trigger_details_fetch();
                                             }
                                         }
                                         KeyCode::Down | KeyCode::Char('j') => {
-                                            if self.selected + 1 < self.packages.len() {
+                                            if self.current_tab == Tab::Settings {
+                                                let max = if self.config.theme_name == "Custom" { 14 } else { 8 };
+                                                if self.settings_index < max {
+                                                    self.settings_index += 1;
+                                                }
+                                            } else if self.selected + 1 < self.packages.len() {
                                                 self.selected += 1;
                                                 self.list_state.select(Some(self.selected));
                                                 self.trigger_details_fetch();
+                                            }
+                                        }
+                                        KeyCode::Enter => {
+                                            if self.current_tab == Tab::Settings {
+                                                self.handle_settings_toggle();
                                             }
                                         }
                                         KeyCode::Home => {
@@ -509,20 +617,6 @@ impl App {
                                                 self.trigger_details_fetch();
                                             }
                                         }
-                                        KeyCode::PageUp => {
-                                            if self.selected > 0 {
-                                                self.selected = self.selected.saturating_sub(10);
-                                                self.list_state.select(Some(self.selected));
-                                                self.trigger_details_fetch();
-                                            }
-                                        }
-                                        KeyCode::PageDown => {
-                                            if !self.packages.is_empty() && self.selected + 1 < self.packages.len() {
-                                                self.selected = (self.selected + 10).min(self.packages.len() - 1);
-                                                self.list_state.select(Some(self.selected));
-                                                self.trigger_details_fetch();
-                                            }
-                                        }
                                         _ => {}
                                     }
                                 }
@@ -530,9 +624,14 @@ impl App {
 
                             InputMode::Editing if key.kind == KeyEventKind::Press => match key.code {
                                 KeyCode::Enter => {
+                                    if self.current_tab == Tab::Settings {
+                                        self.handle_settings_save();
+                                    }
                                     self.input_mode = InputMode::Normal;
-                                    self.pending_search = true;
-                                    self.last_input_time = Instant::now();
+                                    if self.current_tab == Tab::Search {
+                                        self.pending_search = true;
+                                        self.last_input_time = Instant::now();
+                                    }
                                 }
                                 KeyCode::Char(c) => self.enter_char(c),
                                 KeyCode::Backspace => self.delete_char(),
@@ -546,27 +645,227 @@ impl App {
                         }
                     }
                     Event::Mouse(mouse_event) => {
-                        match mouse_event.kind {
-                            event::MouseEventKind::ScrollDown => {
-                                if self.selected + 1 < self.packages.len() {
-                                    self.selected += 1;
-                                    self.list_state.select(Some(self.selected));
-                                    self.trigger_details_fetch();
-                                }
-                            }
-                            event::MouseEventKind::ScrollUp => {
-                                if self.selected > 0 {
-                                    self.selected -= 1;
-                                    self.list_state.select(Some(self.selected));
-                                    self.trigger_details_fetch();
-                                }
-                            }
-                            _ => {}
-                        }
+                        self.handle_mouse_event(mouse_event, terminal.size()?.width)?;
                     }
                     _ => {}
                 }
             }
         }
     }
+
+    fn handle_mouse_event(&mut self, mouse_event: event::MouseEvent, term_width: u16) -> Result<()> {
+        match mouse_event.kind {
+            event::MouseEventKind::ScrollDown => {
+                if self.current_tab == Tab::Settings {
+                    let mgr_count = self.available_managers.len();
+                    let max = if self.config.theme_name == "Custom" { 5 + mgr_count + 6 } else { 5 + mgr_count };
+                    if self.settings_index < max {
+                        self.settings_index += 1;
+                    }
+                } else {
+                    if mouse_event.column > term_width / 2 {
+                        self.details_scroll = self.details_scroll.saturating_add(1);
+                    } else if self.selected + 1 < self.packages.len() {
+                        self.selected += 1;
+                        self.list_state.select(Some(self.selected));
+                        self.trigger_details_fetch();
+                    }
+                }
+            }
+            event::MouseEventKind::ScrollUp => {
+                if self.current_tab == Tab::Settings {
+                    if self.settings_index > 0 {
+                        self.settings_index -= 1;
+                    }
+                } else {
+                    if mouse_event.column > term_width / 2 {
+                        self.details_scroll = self.details_scroll.saturating_sub(1);
+                    } else if self.selected > 0 {
+                        self.selected -= 1;
+                        self.list_state.select(Some(self.selected));
+                        self.trigger_details_fetch();
+                    }
+                }
+            }
+            event::MouseEventKind::Down(event::MouseButton::Left) => {
+                // Tab switching
+                if mouse_event.row >= 1 && mouse_event.row <= 3 {
+                    let col = mouse_event.column.saturating_sub(1);
+                    let tab_titles = ["Search", "Installed", "Updates", "Settings"];
+                    let mut current_x = 0;
+                    for (i, title) in tab_titles.iter().enumerate() {
+                        let width = title.len() as u16;
+                        if col >= current_x && col < current_x + width {
+                            let new_tab = match i {
+                                0 => Tab::Search,
+                                1 => Tab::Installed,
+                                2 => Tab::Updates,
+                                3 => Tab::Settings,
+                                _ => self.current_tab,
+                            };
+                            if new_tab != self.current_tab {
+                                self.current_tab = new_tab;
+                                self.reset_tab_state();
+                            }
+                            return Ok(());
+                        }
+                        current_x += width + 1; // 1 for space separator in Ratatui Tabs
+                    }
+                }
+                // Settings interaction
+                else if self.current_tab == Tab::Settings {
+                    let r = mouse_event.row;
+                    let mgr_count = self.available_managers.len() as u16;
+                    
+                    let idx = if r >= 7 && r <= 11 {
+                        Some(r - 7)
+                    } else if r >= 13 && r < 13 + mgr_count {
+                        Some(r - 13 + 5)
+                    } else if r == 14 + mgr_count {
+                        Some(5 + mgr_count)
+                    } else if r >= 15 + mgr_count && r < 21 + mgr_count {
+                        Some(r - (15 + mgr_count) + 6 + mgr_count)
+                    } else {
+                        None
+                    };
+
+                    if let Some(i) = idx {
+                        self.settings_index = i as usize;
+                        if mouse_event.column > 25 {
+                            self.handle_settings_toggle();
+                        }
+                    }
+                }
+                // List/Details interaction
+                else {
+                    let is_wide = term_width >= 100;
+                    let split_col = if is_wide { term_width / 2 } else { (term_width * 6) / 10 };
+                    
+                    if mouse_event.column < split_col {
+                        // Package List
+                        let offset = if self.current_tab == Tab::Search { 7 } else { 4 };
+                        if mouse_event.row >= offset {
+                            let list_idx = (mouse_event.row - offset) as usize;
+                            let state_offset = self.list_state.offset();
+                            let real_idx = list_idx + state_offset;
+                            if real_idx < self.packages.len() {
+                                self.selected = real_idx;
+                                self.list_state.select(Some(self.selected));
+                                self.trigger_details_fetch();
+                                
+                                if mouse_event.column < 5 {
+                                    let name = self.packages[real_idx].name.clone();
+                                    let is_checked = !self.checked[real_idx];
+                                    self.checked[real_idx] = is_checked;
+                                    if is_checked { self.selected_names.insert(name); } else { self.selected_names.remove(&name); }
+                                }
+                            }
+                        }
+                        
+                        // Scrollbar click for list
+                        if mouse_event.column >= split_col - 2 && mouse_event.column <= split_col - 1 {
+                             if mouse_event.row < (term_width / 2) {
+                                 if self.selected > 0 { self.selected -= 1; }
+                             } else {
+                                 if self.selected + 1 < self.packages.len() { self.selected += 1; }
+                             }
+                             self.list_state.select(Some(self.selected));
+                             self.trigger_details_fetch();
+                        }
+                    } else {
+                        // Details Area Scroll
+                        if mouse_event.column >= term_width - 2 {
+                            if mouse_event.row < (term_width / 4) {
+                                self.details_scroll = self.details_scroll.saturating_sub(1);
+                            } else {
+                                self.details_scroll = self.details_scroll.saturating_add(1);
+                            }
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+
+    fn handle_settings_toggle(&mut self) {
+        let mgr_count = self.available_managers.len();
+        match self.settings_index {
+            1 => { // Auto Update Check
+                self.config.settings.auto_update_check = !self.config.settings.auto_update_check;
+                let _ = self.config.save();
+                self.set_popup(format!("Auto Update Check: {}", self.config.settings.auto_update_check), Color::Cyan);
+            }
+            i if i >= 5 && i < 5 + mgr_count => {
+                let mgr_name = self.available_managers[i - 5].clone();
+                self.toggle_manager(&mgr_name);
+            }
+            i if i == 5 + mgr_count => { 
+                self.next_theme(); 
+            }
+            _ => {
+                // If it's a string/color field, enter editing mode
+                self.input = match self.settings_index {
+                    0 => self.config.aur_helper.clone(),
+                    2 => self.config.settings.search_debounce_ms.to_string(),
+                    3 => self.config.settings.default_tab.clone(),
+                    4 => self.config.settings.max_search_results.to_string(),
+                    i if i >= 6 + mgr_count && i <= 11 + mgr_count && self.config.theme_name == "Custom" => {
+                        let theme = self.config.custom_theme.as_ref().unwrap();
+                        match i - (6 + mgr_count) {
+                            0 => theme.border_color.clone(),
+                            1 => theme.highlight_color.clone(),
+                            2 => theme.success_color.clone(),
+                            3 => theme.error_color.clone(),
+                            4 => theme.text_primary.clone(),
+                            5 => theme.text_secondary.clone(),
+                            _ => String::new(),
+                        }
+                    }
+                    _ => String::new(),
+                };
+                if !self.input.is_empty() || (self.settings_index >= 6 + mgr_count && self.settings_index <= 11 + mgr_count) {
+                    self.input_mode = InputMode::Editing;
+                    self.character_index = self.input.chars().count();
+                }
+            }
+        }
+    }
+
+    fn handle_settings_save(&mut self) {
+        let val = self.input.trim().to_string();
+        let mgr_count = self.available_managers.len();
+        let mut saved = false;
+
+        match self.settings_index {
+            0 => { self.config.aur_helper = val; saved = true; }
+            2 => if let Ok(n) = val.parse() { self.config.settings.search_debounce_ms = n; saved = true; },
+            3 => { self.config.settings.default_tab = val; saved = true; }
+            4 => if let Ok(n) = val.parse() { self.config.settings.max_search_results = n; saved = true; },
+            i if i >= 6 + mgr_count && i <= 11 + mgr_count => {
+                if let Some(ref mut theme) = self.config.custom_theme {
+                    match i - (6 + mgr_count) {
+                        0 => theme.border_color = val,
+                        1 => theme.highlight_color = val,
+                        2 => theme.success_color = val,
+                        3 => theme.error_color = val,
+                        4 => theme.text_primary = val,
+                        5 => theme.text_secondary = val,
+                        _ => {}
+                    }
+                    saved = true;
+                }
+            }
+            _ => {}
+        }
+
+        if saved {
+            let _ = self.config.save();
+            self.set_popup("Settings saved".to_string(), Color::Green);
+        } else {
+            self.set_popup("Invalid input".to_string(), Color::Red);
+        }
+    }
 }
+

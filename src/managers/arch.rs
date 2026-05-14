@@ -27,15 +27,22 @@ impl PackageManager for ArchManager {
             }
         }
 
+        let config = crate::config::Config::load();
+        let enabled = &config.settings.enabled_managers;
+        let show_pacman = enabled.contains(&"pacman".to_string());
+        let show_yay = enabled.contains(&"yay".to_string());
+
         use rayon::prelude::*;
 
         let results: Vec<Vec<Package>> = vec![0, 1]
             .into_par_iter()
             .map(|i| {
-                if i == 0 {
+                if i == 0 && show_pacman {
                     pacman::search_pacman(query)
-                } else {
+                } else if i == 1 && show_yay {
                     yay::search_aur(query, &self.aur_helper)
+                } else {
+                    Vec::new()
                 }
             })
             .collect();
@@ -47,7 +54,6 @@ impl PackageManager for ArchManager {
                 .unwrap_or(std::cmp::Ordering::Equal)
         });
         
-        let config = crate::config::Config::load();
         all.truncate(config.settings.max_search_results);
 
         // Update cache
@@ -127,8 +133,15 @@ impl PackageManager for ArchManager {
     }
 
     fn system_upgrade(&self, terminal: &mut DefaultTerminal) -> Result<(), Box<dyn std::error::Error>> {
-        pacman::system_upgrade(terminal)?;
-        yay::aur_upgrade(terminal, &self.aur_helper)?;
+        let config = crate::config::Config::load();
+        let enabled = &config.settings.enabled_managers;
+        
+        if enabled.contains(&"pacman".to_string()) {
+            pacman::system_upgrade(terminal)?;
+        }
+        if enabled.contains(&"yay".to_string()) {
+            yay::aur_upgrade(terminal, &self.aur_helper)?;
+        }
         Ok(())
     }
 

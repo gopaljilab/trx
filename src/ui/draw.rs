@@ -28,6 +28,7 @@ fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
 const SPINNERS: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
 pub fn draw_ui(frame: &mut Frame, app: &mut App) {
+    let theme_colors = app.config.current_theme();
     let vertical_root = Layout::vertical([
         Constraint::Length(1), // Help header
         Constraint::Length(3), // Tabs
@@ -37,10 +38,10 @@ pub fn draw_ui(frame: &mut Frame, app: &mut App) {
     let [help_area_root, tabs_area, content_area, status_area] = vertical_root.areas(frame.area());
 
     draw_help_header(frame, app, help_area_root);
-    draw_tabs(frame, app, tabs_area);
+    draw_tabs(frame, app, tabs_area, &theme_colors);
 
     if let crate::ui::app::Tab::Settings = app.current_tab {
-        draw_settings_tab(frame, app, content_area);
+        draw_settings_tab(frame, app, content_area, &theme_colors);
     } else {
         // Responsive layout for content area
         let is_wide = content_area.width >= 100;
@@ -67,30 +68,36 @@ pub fn draw_ui(frame: &mut Frame, app: &mut App) {
         };
 
         if let Some(i_area) = input_area {
-            draw_search_input(frame, app, i_area);
+            draw_search_input(frame, app, i_area, &theme_colors);
         }
 
-        draw_package_list(frame, app, list_area);
-        draw_details(frame, app, details_area);
+        draw_package_list(frame, app, list_area, &theme_colors);
+        draw_details(frame, app, details_area, &theme_colors);
     }
     
-    draw_status_bar(frame, app, status_area);
+    draw_status_bar(frame, app, status_area, &theme_colors);
 
     if app.show_help {
-        draw_help_overlay(frame, app);
+        draw_help_overlay(frame, app, &theme_colors);
     }
 
     if app.update_prompt.is_some() {
-        draw_update_prompt(frame, app);
+        draw_update_prompt(frame, app, &theme_colors);
+    }
+
+    if let Some((msg, color)) = &app.popup_message {
+        draw_popup(frame, msg, *color, &theme_colors);
     }
 }
 
-fn draw_update_prompt(frame: &mut Frame, app: &App) {
+fn draw_update_prompt(frame: &mut Frame, app: &App, theme: &crate::config::Theme) {
     let area = centered_rect(40, 20, frame.area());
     frame.render_widget(Clear, area);
 
     let (version, _) = app.update_prompt.as_ref().unwrap();
     let current_version = env!("CARGO_PKG_VERSION");
+    let success_color = app.config.get_color(&theme.success_color);
+    let error_color = app.config.get_color(&theme.error_color);
 
     let text = vec![
         Line::from(vec![Span::raw(format!("Version {} -> {}", current_version, version))]),
@@ -99,13 +106,13 @@ fn draw_update_prompt(frame: &mut Frame, app: &App) {
         Line::from(""),
         Line::from(vec![
             if app.update_selected_yes {
-                Span::styled(" [ Yes ] ", Style::default().bg(Color::Green).fg(Color::Black).add_modifier(Modifier::BOLD))
+                Span::styled(" [ Yes ] ", Style::default().bg(success_color).fg(Color::Black).add_modifier(Modifier::BOLD))
             } else {
                 Span::raw(" [ Yes ] ")
             },
             Span::raw("    "),
             if !app.update_selected_yes {
-                Span::styled(" [ No ] ", Style::default().bg(Color::Red).fg(Color::Black).add_modifier(Modifier::BOLD))
+                Span::styled(" [ No ] ", Style::default().bg(error_color).fg(Color::Black).add_modifier(Modifier::BOLD))
             } else {
                 Span::raw(" [ No ] ")
             },
@@ -113,7 +120,7 @@ fn draw_update_prompt(frame: &mut Frame, app: &App) {
     ];
 
     let paragraph = Paragraph::new(text)
-        .block(Block::bordered().title("Update Available").border_type(BorderType::Thick))
+        .block(Block::bordered().title("Update Available").border_type(BorderType::Thick).border_style(Style::default().fg(app.config.get_color(&theme.border_color))))
         .alignment(ratatui::layout::Alignment::Center);
 
     frame.render_widget(paragraph, area);
@@ -154,8 +161,7 @@ fn draw_help_header(frame: &mut Frame, app: &App, area: Rect) {
     frame.render_widget(Paragraph::new(text), area);
 }
 
-fn draw_tabs(frame: &mut Frame, app: &App, area: Rect) {
-    let theme = &app.config.theme;
+fn draw_tabs(frame: &mut Frame, app: &App, area: Rect, theme: &crate::config::Theme) {
     let highlight_color = app.config.get_color(&theme.highlight_color);
 
     let tab_titles = vec!["Search", "Installed", "Updates", "Settings"];
@@ -171,66 +177,118 @@ fn draw_tabs(frame: &mut Frame, app: &App, area: Rect) {
     frame.render_widget(tabs, area);
 }
 
-fn draw_settings_tab(frame: &mut Frame, app: &App, area: Rect) {
-    let theme = &app.config.theme;
+fn draw_popup(frame: &mut Frame, msg: &str, color: Color, _theme: &crate::config::Theme) {
+    let area = centered_rect(30, 10, frame.area());
+    frame.render_widget(Clear, area);
+    
+    let block = Block::bordered()
+        .border_style(Style::default().fg(color))
+        .border_type(BorderType::Double);
+    
+    let paragraph = Paragraph::new(Span::styled(msg, Style::default().fg(color).add_modifier(Modifier::BOLD)))
+        .block(block)
+        .alignment(ratatui::layout::Alignment::Center);
+    
+    frame.render_widget(paragraph, area);
+}
+
+fn draw_settings_tab(frame: &mut Frame, app: &App, area: Rect, theme: &crate::config::Theme) {
     let highlight_color = app.config.get_color(&theme.highlight_color);
     let border_color = app.config.get_color(&theme.border_color);
     let primary_color = app.config.get_color(&theme.text_primary);
+    let secondary_color = app.config.get_color(&theme.text_secondary);
 
     let mut settings_lines = Vec::new();
-    
-    // Config Path
+
+    // Config Path (Not interactive)
     if let Some(proj_dirs) = directories::ProjectDirs::from("", "", "trx") {
         let config_path = proj_dirs.config_dir().join("config.toml");
         settings_lines.push(Line::from(vec![
-            Span::styled("Config Path: ", Style::default().fg(highlight_color).add_modifier(Modifier::BOLD)),
+            Span::styled("  Config Path: ", Style::default().fg(highlight_color).add_modifier(Modifier::BOLD)),
             Span::raw(config_path.to_string_lossy().to_string()),
         ]));
         settings_lines.push(Line::from(""));
     }
 
+    // Helper macro for settings
+    macro_rules! draw_setting {
+        ($idx:expr, $label:expr, $value:expr, $is_toggle:expr) => {
+            let style = if app.settings_index == $idx {
+                Style::default().fg(highlight_color).add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().fg(primary_color)
+            };
+
+            let indicator = if app.settings_index == $idx { "> " } else { "  " };
+            let val_span = if $is_toggle {
+                if $value == "true" || $value == "enabled" {
+                    Span::styled(format!("[{}]", $value), Style::default().fg(app.config.get_color(&theme.success_color)))
+                } else {
+                    Span::styled(format!("[{}]", $value), Style::default().fg(app.config.get_color(&theme.error_color)))
+                }
+            } else {
+                let mut val_text = $value.to_string();
+                if app.settings_index == $idx && matches!(app.input_mode, InputMode::Editing) {
+                    val_text = format!("{}█", app.input);
+                }
+                Span::styled(val_text, Style::default().fg(secondary_color))
+            };
+
+            settings_lines.push(Line::from(vec![
+                Span::styled(indicator, style),
+                Span::styled(format!("{:<20}: ", $label), style),
+                val_span,
+            ]));
+        };
+    }
+
     // Settings
-    settings_lines.push(Line::from(Span::styled("--- Settings ---", Style::default().fg(highlight_color).add_modifier(Modifier::BOLD))));
-    settings_lines.push(Line::from(format!("AUR Helper        : {}", app.config.aur_helper)));
-    settings_lines.push(Line::from(format!("Search Debounce   : {}ms", app.config.settings.search_debounce_ms)));
-    settings_lines.push(Line::from(format!("Auto Update Check : {}", app.config.settings.auto_update_check)));
-    settings_lines.push(Line::from(format!("Default Tab       : {}", app.config.settings.default_tab)));
-    settings_lines.push(Line::from(format!("Max Results       : {}", app.config.settings.max_search_results)));
+    settings_lines.push(Line::from(Span::styled("--- General ---", Style::default().fg(highlight_color).add_modifier(Modifier::BOLD))));
+    draw_setting!(0, "AUR Helper", &app.config.aur_helper, false);
+    draw_setting!(1, "Auto Update Check", if app.config.settings.auto_update_check { "true" } else { "false" }, true);
+    draw_setting!(2, "Search Debounce", &format!("{}ms", app.config.settings.search_debounce_ms), false);
+    draw_setting!(3, "Default Tab", &app.config.settings.default_tab, false);
+    draw_setting!(4, "Max Results", &app.config.settings.max_search_results.to_string(), false);
     settings_lines.push(Line::from(""));
 
-    // Keybindings
-    let keys = &app.config.keys;
-    settings_lines.push(Line::from(Span::styled("--- Keybindings ---", Style::default().fg(highlight_color).add_modifier(Modifier::BOLD))));
-    settings_lines.push(Line::from(format!("Quit              : {}", keys.quit)));
-    settings_lines.push(Line::from(format!("Install           : {}", keys.install)));
-    settings_lines.push(Line::from(format!("Remove            : {}", keys.remove)));
-    settings_lines.push(Line::from(format!("Search Edit       : {}", keys.search_edit)));
-    settings_lines.push(Line::from(format!("Toggle Select     : {}", keys.toggle_select)));
-    settings_lines.push(Line::from(format!("Tab Next          : {}", keys.tab_next)));
-    settings_lines.push(Line::from(format!("Tab Prev          : {}", keys.tab_prev)));
+    let mut current_idx = 5;
+
+    // Managers
+    settings_lines.push(Line::from(Span::styled("--- Managers ---", Style::default().fg(highlight_color).add_modifier(Modifier::BOLD))));
+    for m in &app.available_managers {
+        let enabled = app.config.settings.enabled_managers.contains(m);
+        draw_setting!(current_idx, &format!("Enable {}", m), if enabled { "enabled" } else { "disabled" }, true);
+        current_idx += 1;
+    }
     settings_lines.push(Line::from(""));
 
     // Theme
     settings_lines.push(Line::from(Span::styled("--- Theme ---", Style::default().fg(highlight_color).add_modifier(Modifier::BOLD))));
-    settings_lines.push(Line::from(format!("Border Color      : {}", theme.border_color)));
-    settings_lines.push(Line::from(format!("Highlight Color   : {}", theme.highlight_color)));
-    settings_lines.push(Line::from(format!("Success Color     : {}", theme.success_color)));
-    settings_lines.push(Line::from(format!("Error Color       : {}", theme.error_color)));
-    settings_lines.push(Line::from(format!("Text Primary      : {}", theme.text_primary)));
-    settings_lines.push(Line::from(format!("Text Secondary    : {}", theme.text_secondary)));
+    draw_setting!(current_idx, "Theme Preset", &app.config.theme_name, false);
+    current_idx += 1;
+    
+    if app.config.theme_name == "Custom" {
+        if let Some(ref ct) = app.config.custom_theme {
+            draw_setting!(current_idx, "Border Color", &ct.border_color, false);
+            draw_setting!(current_idx + 1, "Highlight Color", &ct.highlight_color, false);
+            draw_setting!(current_idx + 2, "Success Color", &ct.success_color, false);
+            draw_setting!(current_idx + 3, "Error Color", &ct.error_color, false);
+            draw_setting!(current_idx + 4, "Text Primary", &ct.text_primary, false);
+            draw_setting!(current_idx + 5, "Text Secondary", &ct.text_secondary, false);
+        }
+    }
 
     let paragraph = Paragraph::new(settings_lines)
         .block(Block::bordered()
-            .title("Configuration Summary")
+            .title("Settings (Enter/Space to Toggle or Edit, Arrows for Themes)")
             .border_style(Style::default().fg(border_color)))
-        .style(Style::default().fg(primary_color))
         .wrap(Wrap { trim: false });
 
     frame.render_widget(paragraph, area);
 }
 
-fn draw_search_input(frame: &mut Frame, app: &App, area: Rect) {
-    let theme = &app.config.theme;
+
+fn draw_search_input(frame: &mut Frame, app: &App, area: Rect, theme: &crate::config::Theme) {
     let highlight_color = app.config.get_color(&theme.highlight_color);
     let border_color = app.config.get_color(&theme.border_color);
 
@@ -271,8 +329,7 @@ fn draw_search_input(frame: &mut Frame, app: &App, area: Rect) {
     }
 }
 
-fn draw_package_list(frame: &mut Frame, app: &mut App, area: Rect) {
-    let theme = &app.config.theme;
+fn draw_package_list(frame: &mut Frame, app: &mut App, area: Rect, theme: &crate::config::Theme) {
     let border_color = app.config.get_color(&theme.border_color);
     let success_color = app.config.get_color(&theme.success_color);
     let secondary_color = app.config.get_color(&theme.text_secondary);
@@ -350,10 +407,24 @@ fn draw_package_list(frame: &mut Frame, app: &mut App, area: Rect) {
         .highlight_symbol("» ");
 
     frame.render_stateful_widget(list, area, &mut app.list_state);
+
+    // Render scrollbar
+    if !app.packages.is_empty() {
+        let scrollbar = ratatui::widgets::Scrollbar::default()
+            .orientation(ratatui::widgets::ScrollbarOrientation::VerticalRight)
+            .begin_symbol(Some("↑"))
+            .end_symbol(Some("↓"));
+        let mut scrollbar_state = ratatui::widgets::ScrollbarState::new(app.packages.len())
+            .position(app.selected);
+        frame.render_stateful_widget(
+            scrollbar,
+            area.inner(ratatui::layout::Margin { vertical: 1, horizontal: 0 }),
+            &mut scrollbar_state,
+        );
+    }
 }
 
-fn draw_details(frame: &mut Frame, app: &App, area: Rect) {
-    let theme = &app.config.theme;
+fn draw_details(frame: &mut Frame, app: &App, area: Rect, theme: &crate::config::Theme) {
     let highlight_color = app.config.get_color(&theme.highlight_color);
     let border_color = app.config.get_color(&theme.border_color);
     let error_color = app.config.get_color(&theme.error_color);
@@ -385,7 +456,7 @@ fn draw_details(frame: &mut Frame, app: &App, area: Rect) {
                 let key_text = format!("{:<key_width$}: ", key, key_width = key_width);
                 let indent = " ".repeat(key_text.len());
 
-                let value_wrapped = wrap(value, 80 - key_text.len());
+                let value_wrapped = wrap(value, (area.width as usize).saturating_sub(key_text.len() + 2));
 
                 if let Some(first) = value_wrapped.get(0) {
                     details_lines.push(Line::from(vec![
@@ -406,19 +477,31 @@ fn draw_details(frame: &mut Frame, app: &App, area: Rect) {
         }
     }
 
-    frame.render_widget(
-        Paragraph::new(details_lines)
-            .wrap(Wrap { trim: false })
-            .style(Style::default().fg(primary_color))
-            .block(Block::bordered()
-                .title("Details")
-                .border_style(Style::default().fg(border_color))),
-        area,
-    );
+    let total_lines = details_lines.len();
+    let paragraph = Paragraph::new(details_lines)
+        .scroll((app.details_scroll, 0))
+        .style(Style::default().fg(primary_color))
+        .block(Block::bordered()
+            .title("Details")
+            .border_style(Style::default().fg(border_color)));
+
+    frame.render_widget(paragraph, area);
+
+    // Render scrollbar for details
+    if total_lines > area.height as usize {
+        let scrollbar = ratatui::widgets::Scrollbar::default()
+            .orientation(ratatui::widgets::ScrollbarOrientation::VerticalRight);
+        let mut scrollbar_state = ratatui::widgets::ScrollbarState::new(total_lines)
+            .position(app.details_scroll as usize);
+        frame.render_stateful_widget(
+            scrollbar,
+            area.inner(ratatui::layout::Margin { vertical: 1, horizontal: 0 }),
+            &mut scrollbar_state,
+        );
+    }
 }
 
-fn draw_status_bar(frame: &mut Frame, app: &App, area: Rect) {
-    let theme = &app.config.theme;
+fn draw_status_bar(frame: &mut Frame, app: &App, area: Rect, theme: &crate::config::Theme) {
     let highlight_color = app.config.get_color(&theme.highlight_color);
     let success_color = app.config.get_color(&theme.success_color);
 
@@ -442,11 +525,10 @@ fn draw_status_bar(frame: &mut Frame, app: &App, area: Rect) {
     frame.render_widget(Paragraph::new(status_line), area);
 }
 
-fn draw_help_overlay(frame: &mut Frame, app: &App) {
+fn draw_help_overlay(frame: &mut Frame, app: &App, theme: &crate::config::Theme) {
     let area = centered_rect(60, 50, frame.area());
     frame.render_widget(Clear, area);
     let keys = &app.config.keys;
-    let theme = &app.config.theme;
     let highlight_color = app.config.get_color(&theme.highlight_color);
 
     let help_text = vec![
