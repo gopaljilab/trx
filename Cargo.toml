@@ -2,6 +2,10 @@
 name = "trx"
 version = "0.1.7"
 edition = "2024"
+description = "A Modern Cross-Platform Package Manager TUI"
+license = "MIT"
+repository = "https://github.com/pie-314/trx"
+homepage = "https://github.com/pie-314/trx"
 
 [dependencies]
 color-eyre = "0.6.5"
