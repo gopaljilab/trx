@@ -50,6 +50,7 @@ pub struct App {
     pub should_update: Option<String>, // if user said yes, url to update
     pub spinner_tick: u8,
     pub manager: Arc<Box<dyn managers::PackageManager>>,
+    pub config: crate::config::Config,
     result_tx: Sender<(String, Vec<Package>)>,
     result_rx: Receiver<(String, Vec<Package>)>,
     details_tx: Sender<DetailsState>,
@@ -67,20 +68,28 @@ impl App {
 
         let (details_tx, details_rx) = std::sync::mpsc::channel();
         let (update_tx, update_rx) = std::sync::mpsc::channel();
-        
-        // Spawn parallel update check
-        thread::spawn(move || {
-            let res = crate::updater::check_for_updates();
-            let _ = update_tx.send(res);
-        });
-
         let config = crate::config::Config::load();
+        
+        // Spawn parallel update check if enabled
+        if config.settings.auto_update_check {
+            thread::spawn(move || {
+                let res = crate::updater::check_for_updates();
+                let _ = update_tx.send(res);
+            });
+        }
+
         let manager = Arc::new(managers::get_system_manager(&config));
 
-        Self {
+        let current_tab = match config.settings.default_tab.as_str() {
+            "Installed" => Tab::Installed,
+            "Updates" => Tab::Updates,
+            _ => Tab::Search,
+        };
+
+        let mut app = Self {
             input: String::new(),
             input_mode: InputMode::Normal,
-            current_tab: Tab::Search,
+            current_tab,
             messages: Vec::new(),
             character_index: 0,
             packages: Vec::new(),
@@ -98,6 +107,7 @@ impl App {
             should_update: None,
             spinner_tick: 0,
             manager,
+            config,
             result_tx,
             result_rx,
             details_tx,
@@ -106,7 +116,13 @@ impl App {
             last_input_time: Instant::now(),
             pending_search: false,
             last_search_query: String::new(),
+        };
+
+        if app.current_tab != Tab::Search {
+            app.reset_tab_state();
         }
+
+        app
     }
 
     fn move_cursor_left(&mut self) {
@@ -154,10 +170,10 @@ impl App {
     }
 
     fn check_and_execute_search(&mut self) {
-        const DEBOUNCE_MS: u64 = 200;
+        let debounce_ms = self.config.settings.search_debounce_ms;
 
         if self.pending_search
-            && self.last_input_time.elapsed() >= Duration::from_millis(DEBOUNCE_MS)
+            && self.last_input_time.elapsed() >= Duration::from_millis(debounce_ms)
         {
             let query = self.input.trim().to_string();
 
@@ -386,128 +402,129 @@ impl App {
                         }
 
                         match self.input_mode {
-                            InputMode::Normal if key.kind == KeyEventKind::Press => match key.code {
-                            KeyCode::BackTab => {
-                                self.switch_tab_previous();
-                                self.last_selected = usize::MAX;
-                                self.trigger_details_fetch();
-                            }
-                            KeyCode::Tab => {
-                                self.switch_tab();
-                                self.last_selected = usize::MAX;
-                                self.trigger_details_fetch();
-                            }
-                            KeyCode::Char('i') => {
-                                let _ = self.run_command(terminal);
-                                // Refresh installed status after install
-                                self.installed_packages = self.manager.get_installed();
-                                if let Tab::Installed = self.current_tab {
-                                    self.packages = self.manager.get_installed_details();
-                                }
-                            }
-                            KeyCode::Char('x') => {
-                                let _ = self.run_remove_command(terminal);
-                                // Refresh
-                                self.installed_packages = self.manager.get_installed();
-                                if let Tab::Installed = self.current_tab {
-                                    self.packages = self.manager.get_installed_details();
-                                }
-                            }
-                            KeyCode::Char('U') => {
-                                let _ = self.manager.system_upgrade(terminal);
-                                self.installed_packages = self.manager.get_installed();
-                                if let Tab::Updates = self.current_tab {
-                                    self.packages = self.manager.get_updates();
-                                }
-                            }
-                            KeyCode::Char('R') => {
-                                let _ = self.manager.refresh_databases(terminal);
-                                if let Tab::Updates = self.current_tab {
-                                    self.packages = self.manager.get_updates();
-                                }
-                            }
-                            KeyCode::Char(' ') => {
-                                if !self.packages.is_empty() {
-                                    let pkg = &self.packages[self.selected];
-                                    let name = pkg.name.clone();
+                            InputMode::Normal if key.kind == KeyEventKind::Press => {
+                                let keys = &self.config.keys;
+                                
+                                // Check custom keybindings
+                                let is_key = |code: KeyCode, target: &str| -> bool {
+                                    match code {
+                                        KeyCode::Char(c) => c.to_string() == target,
+                                        KeyCode::Tab => target == "Tab",
+                                        KeyCode::BackTab => target == "BackTab",
+                                        _ => false,
+                                    }
+                                };
 
-                                    let is_checked = !self.checked[self.selected];
-                                    self.checked[self.selected] = is_checked;
-
-                                    if is_checked {
-                                        self.selected_names.insert(name);
-                                    } else {
-                                        self.selected_names.remove(&name);
+                                if is_key(key.code, &keys.quit) {
+                                    return Ok(None);
+                                } else if is_key(key.code, &keys.help) {
+                                    self.show_help = !self.show_help;
+                                } else if is_key(key.code, &keys.tab_next) || key.code == KeyCode::Tab {
+                                    self.switch_tab();
+                                    self.last_selected = usize::MAX;
+                                    self.trigger_details_fetch();
+                                } else if is_key(key.code, &keys.tab_prev) || key.code == KeyCode::BackTab {
+                                    self.switch_tab_previous();
+                                    self.last_selected = usize::MAX;
+                                    self.trigger_details_fetch();
+                                } else if is_key(key.code, &keys.install) {
+                                    let _ = self.run_command(terminal);
+                                    self.installed_packages = self.manager.get_installed();
+                                    if let Tab::Installed = self.current_tab {
+                                        self.packages = self.manager.get_installed_details();
+                                    }
+                                } else if is_key(key.code, &keys.remove) {
+                                    let _ = self.run_remove_command(terminal);
+                                    self.installed_packages = self.manager.get_installed();
+                                    if let Tab::Installed = self.current_tab {
+                                        self.packages = self.manager.get_installed_details();
+                                    }
+                                } else if is_key(key.code, &keys.system_upgrade) {
+                                    let _ = self.manager.system_upgrade(terminal);
+                                    self.installed_packages = self.manager.get_installed();
+                                    if let Tab::Updates = self.current_tab {
+                                        self.packages = self.manager.get_updates();
+                                    }
+                                } else if is_key(key.code, &keys.refresh_db) {
+                                    let _ = self.manager.refresh_databases(terminal);
+                                    if let Tab::Updates = self.current_tab {
+                                        self.packages = self.manager.get_updates();
+                                    }
+                                } else if is_key(key.code, &keys.toggle_select) {
+                                    if !self.packages.is_empty() {
+                                        let pkg = &self.packages[self.selected];
+                                        let name = pkg.name.clone();
+                                        let is_checked = !self.checked[self.selected];
+                                        self.checked[self.selected] = is_checked;
+                                        if is_checked { self.selected_names.insert(name); } else { self.selected_names.remove(&name); }
+                                    }
+                                } else if is_key(key.code, &keys.search_edit) {
+                                    self.input_mode = InputMode::Editing;
+                                } else {
+                                    match key.code {
+                                        KeyCode::Up | KeyCode::Char('k') => {
+                                            if self.selected > 0 {
+                                                self.selected -= 1;
+                                                self.list_state.select(Some(self.selected));
+                                                self.trigger_details_fetch();
+                                            }
+                                        }
+                                        KeyCode::Down | KeyCode::Char('j') => {
+                                            if self.selected + 1 < self.packages.len() {
+                                                self.selected += 1;
+                                                self.list_state.select(Some(self.selected));
+                                                self.trigger_details_fetch();
+                                            }
+                                        }
+                                        KeyCode::Home => {
+                                            if !self.packages.is_empty() {
+                                                self.selected = 0;
+                                                self.list_state.select(Some(self.selected));
+                                                self.trigger_details_fetch();
+                                            }
+                                        }
+                                        KeyCode::End => {
+                                            if !self.packages.is_empty() {
+                                                self.selected = self.packages.len() - 1;
+                                                self.list_state.select(Some(self.selected));
+                                                self.trigger_details_fetch();
+                                            }
+                                        }
+                                        KeyCode::PageUp => {
+                                            if self.selected > 0 {
+                                                self.selected = self.selected.saturating_sub(10);
+                                                self.list_state.select(Some(self.selected));
+                                                self.trigger_details_fetch();
+                                            }
+                                        }
+                                        KeyCode::PageDown => {
+                                            if !self.packages.is_empty() && self.selected + 1 < self.packages.len() {
+                                                self.selected = (self.selected + 10).min(self.packages.len() - 1);
+                                                self.list_state.select(Some(self.selected));
+                                                self.trigger_details_fetch();
+                                            }
+                                        }
+                                        _ => {}
                                     }
                                 }
                             }
-                            KeyCode::Char('e') => self.input_mode = InputMode::Editing,
-                            KeyCode::Char('q') => return Ok(None),
-                            KeyCode::Char('?') => self.show_help = !self.show_help,
 
-                            KeyCode::Up | KeyCode::Char('k') => {
-                                if self.selected > 0 {
-                                    self.selected -= 1;
-                                    self.list_state.select(Some(self.selected));
-                                    self.trigger_details_fetch();
+                            InputMode::Editing if key.kind == KeyEventKind::Press => match key.code {
+                                KeyCode::Enter => {
+                                    self.input_mode = InputMode::Normal;
+                                    self.pending_search = true;
+                                    self.last_input_time = Instant::now();
                                 }
+                                KeyCode::Char(c) => self.enter_char(c),
+                                KeyCode::Backspace => self.delete_char(),
+                                KeyCode::Left => self.move_cursor_left(),
+                                KeyCode::Right => self.move_cursor_right(),
+                                KeyCode::Esc => self.input_mode = InputMode::Normal,
+                                _ => {}
                             }
-                            KeyCode::Down | KeyCode::Char('j') => {
-                                if self.selected + 1 < self.packages.len() {
-                                    self.selected += 1;
-                                    self.list_state.select(Some(self.selected));
-                                    self.trigger_details_fetch();
-                                }
-                            }
-                            KeyCode::Home => {
-                                if !self.packages.is_empty() {
-                                    self.selected = 0;
-                                    self.list_state.select(Some(self.selected));
-                                    self.trigger_details_fetch();
-                                }
-                            }
-                            KeyCode::End => {
-                                if !self.packages.is_empty() {
-                                    self.selected = self.packages.len() - 1;
-                                    self.list_state.select(Some(self.selected));
-                                    self.trigger_details_fetch();
-                                }
-                            }
-                            KeyCode::PageUp => {
-                                if self.selected > 0 {
-                                    // Move up by 10 items, or to the top
-                                    self.selected = self.selected.saturating_sub(10);
-                                    self.list_state.select(Some(self.selected));
-                                    self.trigger_details_fetch();
-                                }
-                            }
-                            KeyCode::PageDown => {
-                                if !self.packages.is_empty() && self.selected + 1 < self.packages.len() {
-                                    // Move down by 10 items, or to the bottom
-                                    self.selected = (self.selected + 10).min(self.packages.len() - 1);
-                                    self.list_state.select(Some(self.selected));
-                                    self.trigger_details_fetch();
-                                }
-                            }
-                            _ => {}
-                        },
 
-                        InputMode::Editing if key.kind == KeyEventKind::Press => match key.code {
-                            KeyCode::Enter => {
-                                self.input_mode = InputMode::Normal;
-                                self.pending_search = true;
-                                self.last_input_time = Instant::now();
-                            }
-                            KeyCode::Char(c) => self.enter_char(c),
-                            KeyCode::Backspace => self.delete_char(),
-                            KeyCode::Left => self.move_cursor_left(),
-                            KeyCode::Right => self.move_cursor_right(),
-                            KeyCode::Esc => self.input_mode = InputMode::Normal,
                             _ => {}
                         }
-
-                        _ => {}
-                    }
                     }
                     Event::Mouse(mouse_event) => {
                         match mouse_event.kind {

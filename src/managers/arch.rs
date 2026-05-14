@@ -46,7 +46,9 @@ impl PackageManager for ArchManager {
                 .partial_cmp(&a.score)
                 .unwrap_or(std::cmp::Ordering::Equal)
         });
-        all.truncate(50);
+        
+        let config = crate::config::Config::load();
+        all.truncate(config.settings.max_search_results);
 
         // Update cache
         {

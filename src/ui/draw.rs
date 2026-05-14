@@ -115,19 +115,20 @@ fn draw_update_prompt(frame: &mut Frame, app: &App) {
 }
 
 fn draw_help_header(frame: &mut Frame, app: &App, area: Rect) {
+    let keys = &app.config.keys;
     let (help_lines, style) = match app.input_mode {
         InputMode::Normal => (
             vec![
                 "Press ".into(),
-                "q".bold(),
+                keys.quit.clone().bold(),
                 " to quit, ".into(),
-                "e".bold(),
+                keys.search_edit.clone().bold(),
                 " to edit, ".into(),
-                "Tab".bold(),
+                keys.tab_next.clone().bold(),
                 "/".into(),
-                "Shift+Tab".bold(),
+                keys.tab_prev.clone().bold(),
                 " to switch tabs, ".into(),
-                "?".bold(),
+                keys.help.clone().bold(),
                 " for help".into(),
             ],
             Style::default().add_modifier(Modifier::RAPID_BLINK),
@@ -149,19 +150,26 @@ fn draw_help_header(frame: &mut Frame, app: &App, area: Rect) {
 }
 
 fn draw_tabs(frame: &mut Frame, app: &App, area: Rect) {
+    let theme = &app.config.theme;
+    let highlight_color = app.config.get_color(&theme.highlight_color);
+
     let tab_titles = vec!["Search", "Installed", "Updates"];
     let tabs = ratatui::widgets::Tabs::new(tab_titles)
-        .block(Block::bordered().title("Views"))
+        .block(Block::bordered().title("Views").border_style(Style::default().fg(app.config.get_color(&theme.border_color))))
         .select(match app.current_tab {
             crate::ui::app::Tab::Search => 0,
             crate::ui::app::Tab::Installed => 1,
             crate::ui::app::Tab::Updates => 2,
         })
-        .highlight_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD));
+        .highlight_style(Style::default().fg(highlight_color).add_modifier(Modifier::BOLD));
     frame.render_widget(tabs, area);
 }
 
 fn draw_search_input(frame: &mut Frame, app: &App, area: Rect) {
+    let theme = &app.config.theme;
+    let highlight_color = app.config.get_color(&theme.highlight_color);
+    let border_color = app.config.get_color(&theme.border_color);
+
     let spinner = if app.loading {
         SPINNERS[(app.spinner_tick as usize / 5) % SPINNERS.len()]
     } else {
@@ -182,10 +190,12 @@ fn draw_search_input(frame: &mut Frame, app: &App, area: Rect) {
 
     let input = Paragraph::new(app.input.as_str())
         .style(match app.input_mode {
-            InputMode::Normal => Style::default(),
-            InputMode::Editing => Style::default().fg(Color::Yellow),
+            InputMode::Normal => Style::default().fg(app.config.get_color(&theme.text_primary)),
+            InputMode::Editing => Style::default().fg(highlight_color),
         })
-        .block(Block::bordered().title(search_title));
+        .block(Block::bordered()
+            .title(search_title)
+            .border_style(Style::default().fg(border_color)));
     frame.render_widget(input, area);
 
     if let InputMode::Editing = app.input_mode {
@@ -197,6 +207,12 @@ fn draw_search_input(frame: &mut Frame, app: &App, area: Rect) {
 }
 
 fn draw_package_list(frame: &mut Frame, app: &mut App, area: Rect) {
+    let theme = &app.config.theme;
+    let border_color = app.config.get_color(&theme.border_color);
+    let success_color = app.config.get_color(&theme.success_color);
+    let secondary_color = app.config.get_color(&theme.text_secondary);
+    let primary_color = app.config.get_color(&theme.text_primary);
+
     let items: Vec<ListItem> = if app.packages.is_empty() {
         app.messages
             .iter()
@@ -224,13 +240,13 @@ fn draw_package_list(frame: &mut Frame, app: &mut App, area: Rect) {
                 };
 
                 let checked_symbol = if app.selected_names.contains(&p.name) {
-                    Span::styled("[*]", Style::default().fg(Color::Green).add_modifier(Modifier::BOLD))
+                    Span::styled("[*]", Style::default().fg(success_color).add_modifier(Modifier::BOLD))
                 } else {
                     Span::raw("[ ]")
                 };
 
                 let installed_indicator = if app.installed_packages.contains(&p.name) {
-                    Span::styled("(I) ", Style::default().fg(Color::Green))
+                    Span::styled("(I) ", Style::default().fg(success_color))
                 } else {
                     Span::raw("    ")
                 };
@@ -239,9 +255,9 @@ fn draw_package_list(frame: &mut Frame, app: &mut App, area: Rect) {
                     checked_symbol,
                     Span::raw(" "),
                     installed_indicator,
-                    Span::styled(format!("{:<28}", pkg_name), Style::default().add_modifier(Modifier::BOLD)),
-                    Span::styled(format!("{:<20}", version), Style::default().fg(Color::Green)),
-                    Span::styled(provider, Style::default().fg(Color::Cyan)),
+                    Span::styled(format!("{:<28}", pkg_name), Style::default().fg(primary_color).add_modifier(Modifier::BOLD)),
+                    Span::styled(format!("{:<20}", version), Style::default().fg(success_color)),
+                    Span::styled(provider, Style::default().fg(secondary_color)),
                 ]);
 
                 ListItem::new(content)
@@ -262,14 +278,22 @@ fn draw_package_list(frame: &mut Frame, app: &mut App, area: Rect) {
     };
 
     let list = List::new(items)
-        .block(Block::bordered().title(list_title))
-        .highlight_style(Style::default().bg(Color::Blue).fg(Color::White))
+        .block(Block::bordered()
+            .title(list_title)
+            .border_style(Style::default().fg(border_color)))
+        .highlight_style(Style::default().bg(app.config.get_color("blue")).fg(Color::White))
         .highlight_symbol("» ");
 
     frame.render_stateful_widget(list, area, &mut app.list_state);
 }
 
 fn draw_details(frame: &mut Frame, app: &App, area: Rect) {
+    let theme = &app.config.theme;
+    let highlight_color = app.config.get_color(&theme.highlight_color);
+    let border_color = app.config.get_color(&theme.border_color);
+    let error_color = app.config.get_color(&theme.error_color);
+    let primary_color = app.config.get_color(&theme.text_primary);
+
     let mut details_lines: Vec<Line> = Vec::new();
     let spinner = SPINNERS[(app.spinner_tick as usize / 5) % SPINNERS.len()];
 
@@ -282,7 +306,7 @@ fn draw_details(frame: &mut Frame, app: &App, area: Rect) {
         }
         crate::ui::app::DetailsState::Error(err) => {
             details_lines.push(Line::from(vec![
-                Span::styled("Error: ", Style::default().fg(Color::Red)),
+                Span::styled("Error: ", Style::default().fg(error_color)),
                 Span::raw(err),
             ]));
         }
@@ -303,7 +327,7 @@ fn draw_details(frame: &mut Frame, app: &App, area: Rect) {
                         Span::styled(
                             key_text.clone(),
                             Style::default()
-                                .fg(Color::Yellow)
+                                .fg(highlight_color)
                                 .add_modifier(Modifier::BOLD),
                         ),
                         Span::raw(first.to_string()),
@@ -320,12 +344,19 @@ fn draw_details(frame: &mut Frame, app: &App, area: Rect) {
     frame.render_widget(
         Paragraph::new(details_lines)
             .wrap(Wrap { trim: false })
-            .block(Block::bordered().title("Details")),
+            .style(Style::default().fg(primary_color))
+            .block(Block::bordered()
+                .title("Details")
+                .border_style(Style::default().fg(border_color))),
         area,
     );
 }
 
 fn draw_status_bar(frame: &mut Frame, app: &App, area: Rect) {
+    let theme = &app.config.theme;
+    let highlight_color = app.config.get_color(&theme.highlight_color);
+    let success_color = app.config.get_color(&theme.success_color);
+
     let mode_str = match app.input_mode {
         InputMode::Normal => "NORMAL",
         InputMode::Editing => "EDITING",
@@ -334,11 +365,11 @@ fn draw_status_bar(frame: &mut Frame, app: &App, area: Rect) {
     let selected_count = app.selected_names.len();
 
     let status_line = Line::from(vec![
-        Span::styled(format!(" {} ", mode_str), Style::default().bg(Color::Blue).fg(Color::Black).add_modifier(Modifier::BOLD)),
+        Span::styled(format!(" {} ", mode_str), Style::default().bg(app.config.get_color("blue")).fg(Color::Black).add_modifier(Modifier::BOLD)),
         Span::raw(" | "),
-        Span::styled(format!("Mgr: {} ", app.manager.name()), Style::default().fg(Color::Green)),
+        Span::styled(format!("Mgr: {} ", app.manager.name()), Style::default().fg(success_color)),
         Span::raw("| "),
-        Span::styled(format!("Selected: {} ", selected_count), Style::default().fg(Color::Yellow)),
+        Span::styled(format!("Selected: {} ", selected_count), Style::default().fg(highlight_color)),
         Span::raw("| "),
         Span::styled("?: Help | i: Install | x: Remove | U: Upgrade", Style::default().fg(Color::DarkGray)),
     ]);
@@ -346,30 +377,34 @@ fn draw_status_bar(frame: &mut Frame, app: &App, area: Rect) {
     frame.render_widget(Paragraph::new(status_line), area);
 }
 
-fn draw_help_overlay(frame: &mut Frame, _app: &App) {
+fn draw_help_overlay(frame: &mut Frame, app: &App) {
     let area = centered_rect(60, 50, frame.area());
     frame.render_widget(Clear, area);
+    let keys = &app.config.keys;
+    let theme = &app.config.theme;
+    let highlight_color = app.config.get_color(&theme.highlight_color);
+
     let help_text = vec![
         Line::from(vec![Span::styled("Keybindings", Style::default().add_modifier(Modifier::BOLD))]),
         Line::from(""),
-        Line::from(vec![Span::styled("q", Style::default().fg(Color::Yellow)), Span::raw(": Quit")]),
-        Line::from(vec![Span::styled("e", Style::default().fg(Color::Yellow)), Span::raw(": Edit Search (Search tab only)")]),
-        Line::from(vec![Span::styled("Esc", Style::default().fg(Color::Yellow)), Span::raw(": Normal Mode")]),
-        Line::from(vec![Span::styled("Tab / Shift+Tab", Style::default().fg(Color::Yellow)), Span::raw(": Switch Tabs")]),
-        Line::from(vec![Span::styled("Space", Style::default().fg(Color::Yellow)), Span::raw(": Select/Unselect")]),
-        Line::from(vec![Span::styled("i", Style::default().fg(Color::Yellow)), Span::raw(": Install Selected")]),
-        Line::from(vec![Span::styled("x", Style::default().fg(Color::Yellow)), Span::raw(": Remove Selected")]),
-        Line::from(vec![Span::styled("U", Style::default().fg(Color::Yellow)), Span::raw(": Full System Upgrade")]),
-        Line::from(vec![Span::styled("R", Style::default().fg(Color::Yellow)), Span::raw(": Refresh Databases")]),
-        Line::from(vec![Span::styled("Up / Down / j / k", Style::default().fg(Color::Yellow)), Span::raw(": Move")]),
-        Line::from(vec![Span::styled("PageUp / PageDown", Style::default().fg(Color::Yellow)), Span::raw(": Fast Move")]),
-        Line::from(vec![Span::styled("Home / End", Style::default().fg(Color::Yellow)), Span::raw(": Jump to top/bottom")]),
-        Line::from(vec![Span::styled("Scroll Wheel", Style::default().fg(Color::Yellow)), Span::raw(": Move")]),
-        Line::from(vec![Span::styled("?", Style::default().fg(Color::Yellow)), Span::raw(": Toggle Help")]),
+        Line::from(vec![Span::styled(keys.quit.clone(), Style::default().fg(highlight_color)), Span::raw(": Quit")]),
+        Line::from(vec![Span::styled(keys.search_edit.clone(), Style::default().fg(highlight_color)), Span::raw(": Edit Search")]),
+        Line::from(vec![Span::styled("Esc", Style::default().fg(highlight_color)), Span::raw(": Normal Mode")]),
+        Line::from(vec![Span::styled(format!("{} / {}", keys.tab_next, keys.tab_prev), Style::default().fg(highlight_color)), Span::raw(": Switch Tabs")]),
+        Line::from(vec![Span::styled(if keys.toggle_select == " " { "Space".into() } else { keys.toggle_select.clone() }, Style::default().fg(highlight_color)), Span::raw(": Select/Unselect")]),
+        Line::from(vec![Span::styled(keys.install.clone(), Style::default().fg(highlight_color)), Span::raw(": Install Selected")]),
+        Line::from(vec![Span::styled(keys.remove.clone(), Style::default().fg(highlight_color)), Span::raw(": Remove Selected")]),
+        Line::from(vec![Span::styled(keys.system_upgrade.clone(), Style::default().fg(highlight_color)), Span::raw(": Full System Upgrade")]),
+        Line::from(vec![Span::styled(keys.refresh_db.clone(), Style::default().fg(highlight_color)), Span::raw(": Refresh Databases")]),
+        Line::from(vec![Span::styled("Up / Down / j / k", Style::default().fg(highlight_color)), Span::raw(": Move")]),
+        Line::from(vec![Span::styled(keys.help.clone(), Style::default().fg(highlight_color)), Span::raw(": Toggle Help")]),
     ];
     frame.render_widget(
         Paragraph::new(help_text)
-            .block(Block::bordered().title("Help").border_type(BorderType::Double))
+            .block(Block::bordered()
+                .title("Help")
+                .border_type(BorderType::Double)
+                .border_style(Style::default().fg(app.config.get_color(&theme.border_color))))
             .wrap(Wrap { trim: true }),
         area,
     );
