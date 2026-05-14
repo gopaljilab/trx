@@ -1,6 +1,6 @@
 [package]
 name = "trx-cli"
-version = "0.1.9"
+version = "0.1.10"
 edition = "2024"
 description = "A Modern Cross-Platform Package Manager TUI"
 license = "MIT"
@@ -26,3 +26,11 @@ tar = "0.4.44"
 toml = "0.8"
 directories = "5.0"
 tempfile = "3.10"
+self-replace = "1.5"
+
+[profile.release]
+opt-level = "z"     # Optimize for size
+lto = true          # Enable Link Time Optimization
+codegen-units = 1   # Reduce parallel codegen units to increase optimizations
+panic = "abort"     # Remove panic unwinding to save space
+strip = true        # Strip symbols from binary

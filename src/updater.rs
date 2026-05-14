@@ -1,6 +1,5 @@
 use serde::Deserialize;
 use std::env;
-use std::fs;
 
 const GITHUB_API_URL: &str = "https://api.github.com/repos/pie-314/trx/releases/latest";
 const USER_AGENT: &str = "trx-updater";
@@ -75,44 +74,33 @@ pub fn update_self(url: &str) -> Result<(), Box<dyn std::error::Error>> {
     let response = client.get(url).send()?;
     let bytes = response.bytes()?;
 
-    let current_exe = env::current_exe()?;
-    let backup = current_exe.with_extension("old");
-
     // Extract binary from tar.gz
     let tar_gz = flate2::read::GzDecoder::new(&bytes[..]);
     let mut archive = tar::Archive::new(tar_gz);
 
-    let mut new_binary_content = Vec::new();
+    let temp_dir = tempfile::tempdir()?;
+    let mut exe_path = None;
+
     for entry in archive.entries()? {
         let mut entry = entry?;
-        let path = entry.path()?;
-        if path.to_str() == Some("trx") || path.to_str() == Some("trx.exe") {
-            use std::io::Read;
-            entry.read_to_end(&mut new_binary_content)?;
+        let path = entry.path()?.to_path_buf();
+        
+        // Match binary name regardless of subfolders in the archive
+        let is_binary = path.file_name().and_then(|s| s.to_str()) == Some("trx") || 
+                       path.file_name().and_then(|s| s.to_str()) == Some("trx.exe");
+
+        if is_binary {
+            let target_path = temp_dir.path().join(path.file_name().unwrap());
+            entry.unpack(&target_path)?;
+            exe_path = Some(target_path);
             break;
         }
     }
 
-    if new_binary_content.is_empty() {
-        return Err("Could not find binary in release archive".into());
-    }
+    let exe_path = exe_path.ok_or("Could not find binary in release archive")?;
 
-    // Rename current to backup
-    fs::rename(&current_exe, &backup)?;
-
-    // Write new binary
-    fs::write(&current_exe, new_binary_content)?;
-
-    // Make executable
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let mut perms = fs::metadata(&current_exe)?.permissions();
-        perms.set_mode(0o755);
-        fs::set_permissions(&current_exe, perms)?;
-    }
-
-    println!("Update successful! Please restart trx.");
+    // Use self-replace for atomic and cross-platform safe binary replacement
+    self_replace::self_replace(&exe_path)?;
 
     Ok(())
 }
