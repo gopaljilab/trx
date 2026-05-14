@@ -138,7 +138,7 @@ impl App {
     }
 
     fn check_and_execute_search(&mut self) {
-        const DEBOUNCE_MS: u64 = 50;
+        const DEBOUNCE_MS: u64 = 200;
 
         if self.pending_search
             && self.last_input_time.elapsed() >= Duration::from_millis(DEBOUNCE_MS)
