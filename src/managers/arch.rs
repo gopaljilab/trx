@@ -19,8 +19,20 @@ impl PackageManager for ArchManager {
     }
 
     fn search(&self, query: &str) -> Vec<Package> {
-        let mut all = pacman::search_pacman(query);
-        all.extend(yay::search_aur(query, &self.aur_helper));
+        use rayon::prelude::*;
+
+        let results: Vec<Vec<Package>> = vec![0, 1]
+            .into_par_iter()
+            .map(|i| {
+                if i == 0 {
+                    pacman::search_pacman(query)
+                } else {
+                    yay::search_aur(query, &self.aur_helper)
+                }
+            })
+            .collect();
+
+        let mut all: Vec<Package> = results.into_iter().flatten().collect();
         all.sort_by(|a, b| {
             b.score
                 .partial_cmp(&a.score)
