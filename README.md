@@ -31,16 +31,18 @@ Search 50,000+ packages in under 50ms. Install, remove, and update without leavi
 
 TRX is a terminal UI built on top of your existing package manager. It gives you a unified, keyboard-first interface for searching, inspecting, and managing packages, whether you're on macOS with Homebrew, Arch with Pacman + AUR, or Debian/Ubuntu with APT.
 
-No daemon. No config file. Just run `trx`.
+No daemon required. Fully configurable via `config.toml` or the in-app Settings tab.
 
 ---
 
 ## Features
 
 * Renderer built on `ratatui` with deterministic layout and minimal redraw overhead  
-* Fully non-blocking event loop using `tokio`  
+* Fully non-blocking event loop using **OS threads** and **mpsc channels** (no async runtime overhead)
 * Unified command model for package managers with pluggable backend architecture  
 * In-built fuzzy matcher optimized for substring scoring and ranking  
+* **Settings & Themes** – Configure keybindings, themes (Nord, Dracula, etc.), and UI styles in-app
+* **Mouse Support** – Full navigation and interaction via mouse
 * **Self-updating mechanism** – Checks for new releases on startup and updates automatically
 * Stateless backend operations executed via system calls with structured output parsing  
 * Extensible design suitable for adding new package managers without modifying the core engine  
@@ -70,7 +72,7 @@ sudo cp target/release/trx /usr/local/bin/
 ### Cargo
 
 ```bash
-cargo install trx
+cargo install trx-cli
 ```
 
 ---
@@ -92,7 +94,8 @@ trx
 | `x` | Remove selected |
 | `U` | System upgrade |
 | `R` | Refresh databases |
-| `Tab` | Switch tab (Search → Installed → Updates) |
+| `Tab` | Switch tab (Search → Installed → Updates → Settings) |
+| `?` | Toggle help overlay |
 | `q` / `Esc` | Quit / exit current mode |
 
 ---
@@ -102,36 +105,41 @@ trx
 ```
 src/
 ├── main.rs              # Entry point, terminal setup
+├── config.rs            # Configuration and Theme management
+├── updater.rs           # Self-update logic
 ├── ui/
 │   ├── app.rs           # App state, event loop, channel polling
-│   └── input.rs         # Input mode, debounce logic
+│   ├── draw.rs          # UI rendering and layout
+│   └── input.rs         # Input mode handling
 ├── managers/
 │   ├── mod.rs           # PackageManager trait, shared parsing
-│   ├── arch.rs          # Pacman + AUR (yay) backend
+│   ├── arch.rs          # Parallel Pacman + AUR (RPC API) backend
 │   ├── apt.rs           # APT backend
 │   └── brew.rs          # Homebrew backend
 └── fuzzy/
-    └── mod.rs           # Scoring engine
+    └── mod.rs           # Substring-optimized scoring engine
 ```
 
 ### PackageManager trait
 
 ```rust
-pub trait PackageManager {
-    fn search(&self, query: &str) -> Result<Vec<Package>, ManagerError>;
-    fn install(&self, terminal: &mut DefaultTerminal, pkgs: &[String]) -> Result<(), ManagerError>;
-    fn remove(&self, terminal: &mut DefaultTerminal, pkgs: &[String]) -> Result<(), ManagerError>;
-    fn get_installed(&self) -> Result<Vec<Package>, ManagerError>;
-    fn get_updates(&self) -> Result<Vec<Package>, ManagerError>;
-    fn get_details(&self, name: &str, provider: &str) -> Result<DetailsState, ManagerError>;
-    fn system_upgrade(&self, terminal: &mut DefaultTerminal) -> Result<(), ManagerError>;
-    fn refresh_databases(&self) -> Result<(), ManagerError>;
+pub trait PackageManager: Send + Sync {
+    fn name(&self) -> &str;
+    fn search(&self, query: &str) -> Vec<Package>;
+    fn get_installed(&self) -> HashSet<String>;
+    fn get_installed_details(&self) -> Vec<Package>;
+    fn get_updates(&self) -> Vec<Package>;
+    fn get_details(&self, pkg: &str, provider: &str) -> Option<HashMap<String, String>>;
+    fn install(&self, terminal: &mut DefaultTerminal, pkgs: &HashSet<String>) -> Result<(), Box<dyn std::error::Error>>;
+    fn remove(&self, terminal: &mut DefaultTerminal, pkgs: &HashSet<String>) -> Result<(), Box<dyn std::error::Error>>;
+    fn system_upgrade(&self, terminal: &mut DefaultTerminal) -> Result<(), Box<dyn std::error::Error>>;
+    fn refresh_databases(&self, terminal: &mut DefaultTerminal) -> Result<(), Box<dyn std::error::Error>>;
 }
 ```
 
 ### Concurrency model
 
-Search, list loads, and detail fetches all run on **OS threads** communicating via `std::sync::mpsc`. The main loop polls keyboard input with a short timeout, redraws each frame, and non-blockingly drains result channels.
+Search, list loads, and detail fetches all run on **OS threads** communicating via `std::sync::mpsc`. The main loop polls keyboard/mouse input with a short timeout, redraws each frame, and non-blockingly drains result channels. Large searches (like Arch + AUR) are parallelized using **Rayon**.
 
 ---
 
@@ -139,20 +147,22 @@ Search, list loads, and detail fetches all run on **OS threads** communicating v
 
 | Manager | Platform | Status |
 |---------|----------|--------|
-| Pacman | Arch Linux | Implemented |
-| yay (AUR) | Arch Linux | Implemented |
-| APT | Debian / Ubuntu | Implemented |
-| Homebrew | macOS | Implemented |
-| dnf / yum | Fedora / RHEL | Planned |
-| zypper | openSUSE | Planned |
-| winget / scoop | Windows | Planned |
+| Pacman | Arch Linux | ✅ Implemented |
+| yay (AUR) | Arch Linux | ✅ Implemented |
+| APT | Debian / Ubuntu | ✅ Implemented |
+| Homebrew | macOS / Linux | ✅ Implemented |
+| dnf / yum | Fedora / RHEL | 🔜 Planned |
+| zypper | openSUSE | 🔜 Planned |
+| winget / scoop | Windows | 🔜 Planned |
 
 ---
 
 ## Roadmap
 
-- [ ] Configurable keybindings via config file
-- [ ] Pluggable themes and renderer settings
+- [x] Configurable keybindings via config file
+- [x] Pluggable themes and renderer settings
+- [x] Settings Tab for in-app configuration
+- [x] Mouse support
 - [ ] Transaction history and rollback
 - [ ] Batch mode for scripting / CI use
 - [ ] Dependency graph visualizer

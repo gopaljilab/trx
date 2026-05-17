@@ -46,33 +46,20 @@ pub trait PackageManager: Send + Sync {
 
 ## Backend Selection
 
-`get_system_manager` in `src/managers/mod.rs` uses a simple priority order:
+`get_system_manager` in `src/managers/mod.rs` selects backends based on system availability and user configuration:
 
-1. `OS == "macos"` → `BrewManager`
-2. `pacman --version` succeeds → `ArchManager` (Pacman + optional AUR helper)
-3. `apt --version` succeeds → `AptManager`
-4. Fallback → `ArchManager` (with default `yay` AUR helper)
+1. Checks for installed package managers (`brew`, `pacman`, `apt`).
+2. Filters based on `enabled_managers` in `config.toml`.
+3. If multiple managers are enabled and available, returns a `CombinedManager`.
+4. The `CombinedManager` multiplexes search, install, and update commands across all active backends.
 
 ---
 
 ## Shared Utilities
 
-### `parse_alternating_lines`
+### `SEARCH_CACHE` & `DETAILS_CACHE`
 
-Many package manager CLI tools output results in alternating-line format:
-
-```
-<name> <version> [flags...]
-    <description>
-<name> <version> ...
-    <description>
-```
-
-`parse_alternating_lines` parses this format, calls `fuzzy_match` on each package name, drops scores ≤ 0.01, and returns results sorted by score.
-
-### `DETAILS_CACHE`
-
-A global `Arc<Mutex<HashMap<String, HashMap<String, String>>>>` used by all backends to cache detail lookups (the `get_details` call). This avoids repeated subprocess invocations when the user scrolls back to a previously inspected package.
+TRX uses global thread-safe caches for both search results and package details to ensure the UI remains snappy even when navigating back and forth.
 
 ---
 

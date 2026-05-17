@@ -18,24 +18,71 @@ The config file follows the [XDG Base Directory](https://specifications.freedesk
 
 ## Options
 
-```toml
-# ~/.config/trx/config.toml
+The `config.toml` is divided into sections:
 
-# The AUR helper to use on Arch Linux systems.
-# Any helper with yay-compatible CLI flags works (e.g. "paru", "aura").
-# Default: "yay"
-aur_helper = "yay"
-```
+### General Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `aur_helper` | The AUR helper to use (e.g. `yay`, `paru`, `aura`) | `"yay"` |
+| `theme_name` | The active theme name | `"Default"` |
+
+### Settings Section (`[settings]`)
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `search_debounce_ms` | Delay before search triggers after typing | `200` |
+| `auto_update_check` | Check for new TRX versions on startup | `true` |
+| `auto_cleanup` | Automatically clean up package caches | `false` |
+| `default_tab` | Tab to open on startup (`Search`, `Installed`, `Updates`, `Settings`) | `"Search"` |
+| `max_search_results` | Maximum results to display | `50` |
+| `enabled_managers` | List of package managers to use | `["pacman", "yay", "brew", "apt"]` |
+| `border_style` | Style of UI borders (`Plain`, `Rounded`, `Double`, `Thick`) | `"Rounded"` |
+| `spinner_type` | Style of loading spinner (`Dots`, `Bars`, `Pulse`, `Classic`) | `"Dots"` |
+
+### Keybindings Section (`[keys]`)
+
+All keys are configurable:
+
+| Option | Default |
+|--------|---------|
+| `quit` | `"q"` |
+| `install` | `"i"` |
+| `remove` | `"x"` |
+| `search_edit` | `"e"` |
+| `toggle_select` | `" "` |
+| `tab_next` | `"Tab"` |
+| `tab_prev` | `"BackTab"` |
+| `system_upgrade` | `"U"` |
+| `refresh_db` | `"R"` |
+| `help` | `"?"` |
 
 ---
 
-## Future Options
+## Themes
 
-The following options are planned for future releases:
+TRX comes with several built-in themes:
 
-- **Keybindings** — remap any key to a different action
-- **Theme** — colour scheme selection (dark / light / custom)
-- **Search limit** — maximum number of results per tab
-- **Metadata cache TTL** — how long `DETAILS_CACHE` entries remain valid
+- `Default`
+- `Nord`
+- `Dracula`
+- `OneDark`
+- `Gruvbox`
+- `Solarized`
+- `Custom`
 
-See the [Roadmap](./roadmap.md) for status.
+### Custom Theme
+
+When `theme_name = "Custom"` is set, TRX looks for a `[custom_theme]` section:
+
+```toml
+[custom_theme]
+border_color = "blue"
+highlight_color = "yellow"
+success_color = "green"
+error_color = "red"
+text_primary = "white"
+text_secondary = "cyan"
+```
+
+Colors can be standard names (e.g. `"blue"`) or hex codes (e.g. `"#81A1C1"`).

@@ -20,13 +20,14 @@ The Homebrew backend is implemented in `src/managers/brew.rs` as `BrewManager` (
 
 ## Package Details
 
-`get_details` calls `brew info --json=v2 <pkg>` and parses the JSON response. Key fields surfaced in the TUI sidebar include:
+`get_details` calls `brew info <pkg>` and parses the text output. Key fields surfaced in the TUI sidebar include:
 
-- `name`
-- `desc`
-- `homepage`
-- `versions.stable`
-- `installed` (list of installed versions)
+- **Name** and **Version** (from the first line)
+- **Description** (from the second line)
+- **URL** (from the third line)
+- **License**
+- **Caveats**
+- **Analytics**
 
 ---
 
