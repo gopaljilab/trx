@@ -19,6 +19,7 @@ TRX has three tabs, cycled with `Tab` / `Shift+Tab`:
 | **Search** | Fuzzy-search all available packages |
 | **Installed** | Browse packages currently installed on the system |
 | **Updates** | Packages with a newer version available |
+| **Settings** | Configure TRX, themes, and backends in-app |
 
 ---
 
@@ -39,8 +40,10 @@ TRX has three tabs, cycled with `Tab` / `Shift+Tab`:
 |-----|--------|
 | `↑` / `k` | Move selection up |
 | `↓` / `j` | Move selection down |
+| `h` / `l` | Scroll details (in Search/Installed/Updates) or change values (in Settings) |
+| `Home` / `End` | Jump to top or bottom of list |
 
-### Package Operations
+### Package Operations (Search/Installed/Updates Tabs)
 
 | Key | Action |
 |-----|--------|
@@ -56,6 +59,25 @@ TRX has three tabs, cycled with `Tab` / `Shift+Tab`:
 |-----|--------|
 | `e` | Enter search / editing mode |
 | `Esc` | Exit search mode (return to normal navigation) |
+
+### Settings Tab
+
+| Key | Action |
+|-----|--------|
+| `Space` / `Enter` | Toggle boolean settings or enter editing for values |
+| `h` / `l` | Cycle through themes, border styles, and spinners |
+| `k` / `j` | Navigate through settings options |
+
+---
+
+## Mouse Support
+
+TRX features full mouse support for a hybrid workflow:
+
+- **Tabs**: Click on a tab name to switch to it.
+- **Scrolling**: Use the scroll wheel to navigate package lists or the details panel.
+- **Selection**: Click a package in the list to select it; click the checkbox area to toggle its selection for operations.
+- **Settings**: Click any setting to focus it; click the value area to toggle or edit.
 
 ---
 

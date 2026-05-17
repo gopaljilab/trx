@@ -21,6 +21,8 @@ No daemon. No config file required. Just run `trx`.
 | **Unified interface** | Same keybindings across all package managers |
 | **Non-blocking** | All I/O on OS threads — UI never freezes |
 | **Self-updating** | Checks GitHub releases on startup |
+| **Themes** | Built-in Nord, Dracula, Gruvbox, and Custom themes |
+| **Mouse Support** | Full navigation and interaction via mouse |
 | **Extensible** | Pluggable backend trait — add a new PM in one file |
 
 ---
@@ -43,5 +45,6 @@ No daemon. No config file required. Just run `trx`.
 
 - [Installation](./installation.md) — get TRX running in 30 seconds
 - [Usage](./usage.md) — keybindings and daily workflow
+- [Web Version](https://trx.sh) — try the interactive demo on the web
 - [Architecture](./architecture/overview.md) — how TRX is structured internally
 - [Adding a Backend](./backends/new-backend.md) — extend TRX to support a new package manager

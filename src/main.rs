@@ -8,7 +8,7 @@ use color_eyre::Result;
 use managers::Package;
 use ratatui::crossterm::{
     cursor::{Hide, Show},
-    event::DisableMouseCapture,
+    event::{DisableMouseCapture, EnableMouseCapture},
     execute,
     terminal::{self, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -26,22 +26,26 @@ fn main() -> Result<()> {
                 return Ok(());
             }
             "--help" | "-h" => {
+                let config = config::Config::load();
+                let keys = &config.keys;
                 println!("trx - A Modern Cross-Platform Package Manager TUI");
                 println!("\nUsage: trx [OPTIONS]");
                 println!("\nOptions:");
                 println!("  -v, --version    Print version information");
                 println!("  -h, --help       Print help information");
-                println!("\nKeybindings (inside TUI):");
-                println!("  q                Quit");
-                println!("  Tab              Switch between Search, Installed, and Updates tabs");
-                println!("  Shift+Tab        Switch backwards between tabs");
-                println!("  e                Edit search query (Search tab)");
-                println!("  Space            Select/unselect packages");
-                println!("  i                Install selected packages");
-                println!("  x                Remove selected packages");
-                println!("  U                Full system upgrade");
-                println!("  R                Refresh package databases");
-                println!("  ?                Toggle help overlay");
+                println!("\nKeybindings (current configuration):");
+                println!("  {:<16} Quit", keys.quit);
+                println!("  {:<16} Switch to next tab", format!("{}/Tab", keys.tab_next));
+                println!("  {:<16} Switch to previous tab", format!("{}/Shift+Tab", keys.tab_prev));
+                println!("  {:<16} Edit search query (Search tab)", keys.search_edit);
+                println!("  {:<16} Toggle package selection or settings", if keys.toggle_select == " " { "Space".to_string() } else { keys.toggle_select.clone() });
+                println!("  {:<16} Install selected packages", keys.install);
+                println!("  {:<16} Remove selected packages", keys.remove);
+                println!("  {:<16} Full system upgrade", keys.system_upgrade);
+                println!("  {:<16} Refresh package databases", keys.refresh_db);
+                println!("  {:<16} Toggle help overlay", keys.help);
+                println!("\nMouse Support:");
+                println!("  Full navigation, tab switching, and scrolling are supported.");
                 return Ok(());
             }
             _ => {}
@@ -50,7 +54,7 @@ fn main() -> Result<()> {
 
     color_eyre::install()?;
     let mut terminal = init();
-    execute!(std::io::stdout(), DisableMouseCapture)?;
+    execute!(std::io::stdout(), EnableMouseCapture)?;
     let (result_tx, result_rx): (mpsc::Sender<(String, Vec<Package>)>, mpsc::Receiver<(String, Vec<Package>)>) =
         mpsc::channel();
     let app_result = App::new(result_tx.clone(), result_rx).run(&mut terminal);
@@ -106,7 +110,7 @@ pub fn execute_external_command(
     let mut input = String::new();
     io::stdin().read_line(&mut input)?;
 
-    execute!(terminal.backend_mut(), EnterAlternateScreen)?;
+    execute!(terminal.backend_mut(), EnterAlternateScreen, EnableMouseCapture)?;
     terminal::enable_raw_mode()?;
     execute!(terminal.backend_mut(), Hide)?;
     terminal.clear()?;

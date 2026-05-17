@@ -17,19 +17,19 @@ aur_helper = "paru"
 
 ## Search
 
-`search_aur` calls `<helper> -Ss <query>` and parses the alternating-line output via `parse_alternating_lines`. Packages receive the provider string `"aur"`.
+`search_aur` calls the **AUR RPC API** (`v5`) directly via `reqwest`. This avoids spawning a subprocess for searching the AUR, significantly improving performance. Packages receive the provider string `"aur"`.
 
 ---
 
 ## Package Details
 
-`aur_details` runs `<helper> -Si <pkg>` and parses the colon-separated output into a `HashMap`. The `Maintainer`, `URL`, `Votes`, and `Popularity` fields typically appear in AUR results.
+`aur_details` also uses the **AUR RPC API** (`info` type) to fetch detailed package metadata. The response JSON is mapped to TRX's internal detail structure, including fields like `Maintainer`, `URL`, `Votes`, and `Popularity`.
 
 ---
 
 ## Install
 
-`aur_install` runs `<helper> -S <packages>` via `execute_external_command`, handing control of the terminal to the helper's interactive output (which typically presents a PKGBUILD review step).
+`aur_install` runs the configured `<helper> -S <packages> --needed` via `execute_external_command`. It strips any provider prefixes (like `aur/`) before calling the helper.
 
 ---
 

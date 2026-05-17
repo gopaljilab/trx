@@ -23,16 +23,21 @@ It implements `PackageManager` by delegating to `pacman::*` and `yay::*` functio
 
 ## Search
 
-`ArchManager::search` merges results from both `pacman -Ss` and the AUR helper, sorts by fuzzy score, and truncates to **50 results**:
+`ArchManager::search` executes searches in parallel using **Rayon**. It merges results from both `pacman -Ss` and the configured AUR helper, sorts by fuzzy score, and truncates to the limit set in `config.toml` (default: 50):
 
 ```rust
-fn search(&self, query: &str) -> Vec<Package> {
-    let mut all = pacman::search_pacman(query);
-    all.extend(yay::search_aur(query, &self.aur_helper));
-    all.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(Equal));
-    all.truncate(50);
-    all
-}
+let results: Vec<Vec<Package>> = vec![0, 1]
+    .into_par_iter()
+    .map(|i| {
+        if i == 0 && show_pacman {
+            pacman::search_pacman(query)
+        } else if i == 1 && show_yay {
+            yay::search_aur(query, &self.aur_helper)
+        } else {
+            Vec::new()
+        }
+    })
+    .collect();
 ```
 
 `search_pacman` calls `pacman -Ss <query>` and parses the alternating-line output via `parse_alternating_lines`.

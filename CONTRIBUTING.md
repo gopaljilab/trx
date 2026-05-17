@@ -157,12 +157,17 @@ PRs should not include unrelated formatting changes.
 To add a new provider, implement the trait:
 
 ```rust
-pub trait PackageManager {
-    fn search(&self, query: &str) -> Result<Vec<Package>, ManagerError>;
-    fn install(&self, pkg: &str) -> Result<(), ManagerError>;
-    fn remove(&self, pkg: &str) -> Result<(), ManagerError>;
-    fn update(&self, pkg: &str) -> Result<(), ManagerError>;
-    fn info(&self, pkg: &str) -> Result<PackageInfo, ManagerError>;
+pub trait PackageManager: Send + Sync {
+    fn name(&self) -> &str;
+    fn search(&self, query: &str) -> Vec<Package>;
+    fn get_installed(&self) -> HashSet<String>;
+    fn get_installed_details(&self) -> Vec<Package>;
+    fn get_updates(&self) -> Vec<Package>;
+    fn get_details(&self, pkg: &str, provider: &str) -> Option<HashMap<String, String>>;
+    fn install(&self, terminal: &mut DefaultTerminal, pkgs: &HashSet<String>) -> Result<(), Box<dyn std::error::Error>>;
+    fn remove(&self, terminal: &mut DefaultTerminal, pkgs: &HashSet<String>) -> Result<(), Box<dyn std::error::Error>>;
+    fn system_upgrade(&self, terminal: &mut DefaultTerminal) -> Result<(), Box<dyn std::error::Error>>;
+    fn refresh_databases(&self, terminal: &mut DefaultTerminal) -> Result<(), Box<dyn std::error::Error>>;
 }
 ```
 

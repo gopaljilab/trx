@@ -18,8 +18,6 @@ This page tracks planned and in-progress features for TRX.
 
 | Feature | Description |
 |---------|-------------|
-| **Configurable keybindings** | Remap any key via `config.toml` |
-| **Pluggable themes** | Colour scheme selection and custom themes via config |
 | **Transaction history** | Log of installs/removes with rollback support |
 | **Batch / scripting mode** | Non-interactive mode for CI and shell scripts |
 | **Dependency graph visualiser** | Visual view of package dependency trees |
@@ -38,6 +36,10 @@ This page tracks planned and in-progress features for TRX.
 | Homebrew backend | v0.1.0 |
 | Self-updating mechanism | v0.1.2 |
 | Binary releases via GitHub Actions | v0.1.4 |
+| Configurable keybindings | v0.1.5 |
+| Built-in and Custom Themes | v0.1.6 |
+| Mouse Support | v0.1.7 |
+| Settings Tab | v0.1.8 |
 
 ---
 
