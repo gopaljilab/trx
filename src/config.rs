@@ -13,8 +13,9 @@ pub struct Settings {
     pub enabled_managers: Vec<String>,
     pub border_style: String, // "Plain", "Rounded", "Double", "Thick"
     pub spinner_type: String, // "Dots", "Bars", "Pulse", "Classic"
-    /// Version the user explicitly skipped. Cleared automatically when a
-    /// genuinely newer release appears, so the prompt resurfaces then.
+    /// Version the user explicitly skipped. Ignored while the same tag is
+    /// latest; cleared from config when a genuinely newer release is detected,
+    /// so the prompt resurfaces automatically for new updates.
     pub skipped_update_version: Option<String>,
 }
 

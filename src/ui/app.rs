@@ -448,6 +448,12 @@ impl App {
             // check for update prompt response
             if self.update_prompt.is_none() {
                 if let Ok(Some(update)) = self.update_rx.try_recv() {
+                    // A genuinely newer release arrived — clear any stale skip
+                    // entry so the config stays tidy.
+                    if self.config.settings.skipped_update_version.is_some() {
+                        self.config.settings.skipped_update_version = None;
+                        let _ = self.config.save();
+                    }
                     self.update_prompt = Some(update);
                 }
             }
