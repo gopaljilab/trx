@@ -49,7 +49,6 @@ pub struct App {
     pub show_help: bool,
     pub update_prompt: Option<(String, String)>, // (version, url)
     pub update_selected_yes: bool,
-    pub should_update: Option<String>, // if user said yes, url to update
     pub spinner_tick: u8,
     pub manager: Arc<Box<dyn managers::PackageManager>>,
     pub config: crate::config::Config,
@@ -79,8 +78,9 @@ impl App {
         
         // Spawn parallel update check if enabled
         if config.settings.auto_update_check {
+            let skipped = config.settings.skipped_update_version.clone();
             thread::spawn(move || {
-                let res = crate::updater::check_for_updates();
+                let res = crate::updater::check_for_updates(skipped.as_deref());
                 let _ = update_tx.send(res);
             });
         }
@@ -111,7 +111,6 @@ impl App {
             show_help: false,
             update_prompt: None,
             update_selected_yes: true,
-            should_update: None,
             spinner_tick: 0,
             manager,
             config,
@@ -447,7 +446,7 @@ impl App {
             }
 
             // check for update prompt response
-            if self.update_prompt.is_none() && self.should_update.is_none() {
+            if self.update_prompt.is_none() {
                 if let Ok(Some(update)) = self.update_rx.try_recv() {
                     self.update_prompt = Some(update);
                 }
@@ -526,7 +525,10 @@ impl App {
                                         }
                                     }
                                     KeyCode::Esc | KeyCode::Char('q') => {
-                                        self.update_prompt = None;
+                                        if let Some((version, _)) = self.update_prompt.take() {
+                                            self.config.settings.skipped_update_version = Some(version);
+                                            let _ = self.config.save();
+                                        }
                                     }
                                     _ => {}
                                 }

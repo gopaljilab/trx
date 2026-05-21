@@ -13,6 +13,9 @@ pub struct Settings {
     pub enabled_managers: Vec<String>,
     pub border_style: String, // "Plain", "Rounded", "Double", "Thick"
     pub spinner_type: String, // "Dots", "Bars", "Pulse", "Classic"
+    /// Version the user explicitly skipped. Cleared automatically when a
+    /// genuinely newer release appears, so the prompt resurfaces then.
+    pub skipped_update_version: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -62,6 +65,7 @@ impl Default for Config {
                 enabled_managers: vec!["pacman".to_string(), "yay".to_string(), "brew".to_string(), "apt".to_string()],
                 border_style: "Rounded".to_string(),
                 spinner_type: "Dots".to_string(),
+                skipped_update_version: None,
             },
             keys: Keys {
                 quit: "q".to_string(),
