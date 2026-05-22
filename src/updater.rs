@@ -16,7 +16,7 @@ struct Asset {
     browser_download_url: String,
 }
 
-pub fn check_for_updates() -> Option<(String, String)> {
+pub fn check_for_updates(skipped_version: Option<&str>) -> Option<(String, String)> {
     let client = reqwest::blocking::Client::builder()
         .user_agent(USER_AGENT)
         .timeout(std::time::Duration::from_secs(2))
@@ -28,6 +28,13 @@ pub fn check_for_updates() -> Option<(String, String)> {
 
     let current_version = env!("CARGO_PKG_VERSION");
     let latest_version = release.tag_name.trim_start_matches('v');
+
+    // If the user explicitly skipped this exact version, don't prompt again.
+    // Once a genuinely newer release appears is_newer will be true for the
+    // new version and the skipped entry becomes stale automatically.
+    if skipped_version.map_or(false, |s| s == latest_version) {
+        return None;
+    }
 
     if is_newer(latest_version, current_version) {
         // Find asset for current platform
