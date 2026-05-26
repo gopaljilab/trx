@@ -248,6 +248,23 @@ impl App {
         Ok(())
     }
 
+    fn run_update_command(
+        &self,
+        terminal: &mut DefaultTerminal,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        // Prefer explicitly checked packages; fall back to the highlighted item.
+        let mut to_update: HashSet<String> = self.selected_names.clone();
+        if to_update.is_empty() {
+            if let Some(pkg) = self.packages.get(self.selected) {
+                to_update.insert(pkg.name.clone());
+            }
+        }
+        if !to_update.is_empty() {
+            self.manager.update_packages(terminal, &to_update)?;
+        }
+        Ok(())
+    }
+
     fn switch_tab(&mut self) {
         self.current_tab = match self.current_tab {
             Tab::Search => Tab::Installed,
@@ -589,6 +606,12 @@ impl App {
                                     let _ = self.run_remove_command(terminal);
                                     self.installed_packages = self.manager.get_installed();
                                     if let Tab::Installed = self.current_tab {
+                                        self.reset_tab_state();
+                                    }
+                                } else if is_key(key.code, &keys.update) {
+                                    let _ = self.run_update_command(terminal);
+                                    self.installed_packages = self.manager.get_installed();
+                                    if let Tab::Updates = self.current_tab {
                                         self.reset_tab_state();
                                     }
                                 } else if is_key(key.code, &keys.system_upgrade) {
