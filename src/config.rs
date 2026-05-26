@@ -32,6 +32,12 @@ pub struct Keys {
     pub system_upgrade: String,
     pub refresh_db: String,
     pub help: String,
+    #[serde(default = "default_check_update_key")]
+    pub check_update: String,
+}
+
+fn default_check_update_key() -> String {
+    "C".to_string()
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
@@ -81,6 +87,7 @@ impl Default for Config {
                 system_upgrade: "U".to_string(),
                 refresh_db: "R".to_string(),
                 help: "?".to_string(),
+                check_update: "C".to_string(),
             },
             theme: Theme {
                 border_color: "blue".to_string(),

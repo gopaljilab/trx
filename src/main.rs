@@ -45,6 +45,7 @@ fn main() -> Result<()> {
                 println!("  {:<16} Full system upgrade", keys.system_upgrade);
                 println!("  {:<16} Refresh package databases", keys.refresh_db);
                 println!("  {:<16} Toggle help overlay", keys.help);
+                println!("  {:<16} Check for trx binary updates", keys.check_update);
                 println!("\nMouse Support:");
                 println!("  Full navigation, tab switching, and scrolling are supported.");
                 return Ok(());

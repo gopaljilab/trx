@@ -9,6 +9,7 @@ use ratatui::{
 };
 use std::collections::HashSet;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -60,7 +61,10 @@ pub struct App {
     result_rx: Receiver<(String, Vec<Package>)>,
     details_tx: Sender<DetailsState>,
     details_rx: Receiver<DetailsState>,
+    update_tx: Sender<Option<(String, String)>>,
     update_rx: Receiver<Option<(String, String)>>,
+    /// Guard to prevent overlapping manual update-check threads.
+    update_check_in_flight: Arc<AtomicBool>,
     last_input_time: Instant,
     pending_search: bool,
     last_search_query: String,
@@ -76,12 +80,14 @@ impl App {
         let (update_tx, update_rx) = std::sync::mpsc::channel();
         let config = crate::config::Config::load();
         
-        // Spawn parallel update check if enabled
+        // Spawn parallel update check if enabled; keep a clone of the sender
+        // so the user can manually re-trigger a check at any time.
         if config.settings.auto_update_check {
             let skipped = config.settings.skipped_update_version.clone();
+            let tx = update_tx.clone();
             thread::spawn(move || {
                 let res = crate::updater::check_for_updates(skipped.as_deref());
-                let _ = update_tx.send(res);
+                let _ = tx.send(res);
             });
         }
 
@@ -124,7 +130,9 @@ impl App {
             result_rx,
             details_tx,
             details_rx,
+            update_tx,
             update_rx,
+            update_check_in_flight: Arc::new(AtomicBool::new(false)),
             last_input_time: Instant::now(),
             pending_search: false,
             last_search_query: String::new(),
@@ -140,6 +148,31 @@ impl App {
     pub fn set_popup(&mut self, msg: String, color: Color) {
         self.popup_message = Some((msg, color));
         self.popup_timer = Some(Instant::now());
+    }
+
+    /// Spawn a fresh update-check thread and funnel the result back through
+    /// the existing `update_rx` channel so the main event loop handles it
+    /// identically to the automatic startup check.
+    /// A `compare_exchange` guard prevents overlapping requests: if a check is
+    /// already in flight the call is a no-op.
+    pub fn trigger_manual_update_check(&self) {
+        // Atomically claim the in-flight slot; bail out if already taken.
+        if self.update_check_in_flight
+            .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
+            .is_err()
+        {
+            return;
+        }
+        let tx = self.update_tx.clone();
+        let in_flight = Arc::clone(&self.update_check_in_flight);
+        // Bypass the skipped-version filter for manual checks — the user
+        // explicitly asked, so always show the prompt even for a skipped tag.
+        thread::spawn(move || {
+            let res = crate::updater::check_for_updates(None);
+            let _ = tx.send(res);
+            // Release the guard so future presses can trigger a new check.
+            in_flight.store(false, Ordering::Release);
+        });
     }
 
     fn move_cursor_left(&mut self) {
@@ -474,9 +507,14 @@ impl App {
             // check for update prompt response
             if self.update_prompt.is_none() {
                 if let Ok(Some(update)) = self.update_rx.try_recv() {
-                    // A genuinely newer release arrived — clear any stale skip
-                    // entry so the config stays tidy.
-                    if self.config.settings.skipped_update_version.is_some() {
+                    // Only clear a stored skip if the detected version is *different*
+                    // from what the user skipped. Clearing unconditionally would erase
+                    // the user's explicit choice when they manually recheck and dismiss.
+                    let detected_version = &update.0;
+                    let skip_is_stale = self.config.settings.skipped_update_version
+                        .as_deref()
+                        .map_or(false, |skipped| skipped != detected_version);
+                    if skip_is_stale {
                         self.config.settings.skipped_update_version = None;
                         let _ = self.config.save();
                     }
@@ -637,6 +675,8 @@ impl App {
                                     if let Tab::Updates = self.current_tab {
                                         self.reset_tab_state();
                                     }
+                                } else if is_key(key.code, &keys.check_update) {
+                                    self.trigger_manual_update_check();
                                 } else if is_key(key.code, &keys.toggle_select) {
                                     if self.current_tab == Tab::Settings {
                                         self.handle_settings_toggle();
