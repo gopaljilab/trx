@@ -63,7 +63,7 @@ pub struct App {
     update_rx: Receiver<Option<(String, String)>>,
     last_input_time: Instant,
     pending_search: bool,
-    pub last_search_query: String,
+    last_search_query: String,
     pub popup_timer: Option<Instant>,
 }
 
@@ -184,6 +184,12 @@ impl App {
             self.last_input_time = Instant::now();
             self.pending_search = true;
         }
+    }
+
+    /// Returns the last successfully executed search query (updated after debounce).
+    /// Prefer checking `input.trim()` for the *current* user input.
+    pub fn search_query(&self) -> &str {
+        &self.last_search_query
     }
 
     fn check_and_execute_search(&mut self) {

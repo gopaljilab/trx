@@ -388,7 +388,7 @@ fn draw_package_list(frame: &mut Frame, app: &mut App, area: Rect, theme: &crate
                 "  Searching...",
                 Style::default().fg(secondary_color),
             )))]
-        } else if !app.last_search_query.is_empty() || !matches!(app.current_tab, crate::ui::app::Tab::Search) {
+        } else if !app.input.trim().is_empty() || !matches!(app.current_tab, crate::ui::app::Tab::Search) {
             vec![ListItem::new(Line::from(Span::styled(
                 "  No results found.",
                 Style::default().fg(secondary_color).add_modifier(Modifier::ITALIC),
