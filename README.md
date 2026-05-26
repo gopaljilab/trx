@@ -40,11 +40,11 @@ No daemon required. Fully configurable via `config.toml` or the in-app Settings 
 * Renderer built on `ratatui` with deterministic layout and minimal redraw overhead  
 * Fully non-blocking event loop using **OS threads** and **mpsc channels** (no async runtime overhead)
 * Unified command model for package managers with pluggable backend architecture  
-* **Tiered fuzzy matcher** — exact → prefix → word-boundary → consecutive → subsequence scoring  
-* **Install, remove, and update packages** without leaving the TUI (`i`, `x`, `u` keys)  
+* **Tiered fuzzy search** — five-tier scorer: exact → prefix → word-boundary → consecutive → subsequence; results ranked by relevance
+* **Install and remove packages** without leaving the TUI (`i`, `x` keys)  
 * **Settings & Themes** – Configure keybindings, themes (Nord, Dracula, etc.), and UI styles in-app
 * **Mouse Support** – Full navigation and interaction via mouse
-* **Self-updating mechanism** – Checks for new releases on startup and updates automatically (`C` to recheck)
+* **Self-updating mechanism** – Checks for new releases on startup and updates automatically
 * **Search result caching** – Repeat queries are served instantly from an in-memory cache
 * Stateless backend operations executed via system calls with structured output parsing  
 * Extensible design suitable for adding new package managers without modifying the core engine  
@@ -94,12 +94,10 @@ trx
 | `space` | Toggle package selection |
 | `i` | Install selected package(s) |
 | `x` | Remove selected package(s) |
-| `u` | Update selected package(s) |
 | `U` | System-wide upgrade |
 | `R` | Refresh package databases |
-| `C` | Manually check for a TRX update |
 | `Tab` | Switch tab (Search → Installed → Updates → Settings) |
-| `?` | Toggle help overlay (full keybinding reference) |
+| `?` | Toggle help overlay (quick keybinding reference) |
 | `q` / `Esc` | Quit / exit current mode |
 
 > All keybindings are configurable in `~/.config/trx/config.toml`.
@@ -138,7 +136,6 @@ pub trait PackageManager: Send + Sync {
     fn get_details(&self, pkg: &str, provider: &str) -> Option<HashMap<String, String>>;
     fn install(&self, terminal: &mut DefaultTerminal, pkgs: &HashSet<String>) -> Result<(), Box<dyn std::error::Error>>;
     fn remove(&self, terminal: &mut DefaultTerminal, pkgs: &HashSet<String>) -> Result<(), Box<dyn std::error::Error>>;
-    fn update_packages(&self, terminal: &mut DefaultTerminal, pkgs: &HashSet<String>) -> Result<(), Box<dyn std::error::Error>>;
     fn system_upgrade(&self, terminal: &mut DefaultTerminal) -> Result<(), Box<dyn std::error::Error>>;
     fn refresh_databases(&self, terminal: &mut DefaultTerminal) -> Result<(), Box<dyn std::error::Error>>;
 }
@@ -181,13 +178,12 @@ default_tab = "Search"      # Starting tab: Search, Installed, Updates, Settings
 border_style = "Rounded"    # Border style: Plain, Rounded, Double, Thick
 spinner_type = "Dots"       # Loading spinner: Dots, Bars, Pulse, Classic
 enabled_managers = ["pacman", "yay", "brew", "apt"]
+skipped_update_version = "" # Version string that the user chose to skip (managed automatically)
 
 [keys]
 quit = "q"
 install = "i"
 remove = "x"
-update = "u"
-check_update = "C"
 search_edit = "e"
 toggle_select = " "
 tab_next = "Tab"
@@ -196,7 +192,9 @@ system_upgrade = "U"
 refresh_db = "R"
 help = "?"
 
-[theme]               # Used when theme_name = "Custom"
+# The `theme` block sets the Default preset colors; `custom_theme` is used
+# when theme_name = "Custom".  Only one of the two is active at a time.
+[theme]
 border_color = "blue"
 highlight_color = "yellow"
 success_color = "green"
@@ -214,7 +212,7 @@ text_secondary = "cyan"
 - [x] Pluggable themes and renderer settings
 - [x] Settings Tab for in-app configuration
 - [x] Mouse support
-- [x] Package update (per-package, not just system upgrade)
+- [ ] Package update (per-package, not just system upgrade)
 - [x] Search result caching for repeated queries
 - [x] AUR search via RPC API (no yay dependency for search)
 - [ ] Transaction history and rollback
