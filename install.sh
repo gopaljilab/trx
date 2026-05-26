@@ -55,10 +55,12 @@ if [ -f "$BIN_PATH" ]; then
     rm -f "$BIN_PATH"
 fi
 
-# Also check common global path just in case (directory may not exist on macOS)
+# Clean up any old global install that may have been placed in /usr/local/bin
+# by a previous version of this script. The current install target is INSTALL_DIR
+# ($HOME/.local/bin), so this block only removes a legacy binary and does NOT
+# affect the active installation path used below.
 if [ -d "/usr/local/bin" ] && [ -f "/usr/local/bin/trx" ]; then
-    echo "Existing global installation found at /usr/local/bin/trx."
-    echo "Removing old global version..."
+    echo "Legacy global installation found at /usr/local/bin/trx — removing old binary..."
     sudo rm -f "/usr/local/bin/trx" || echo "Failed to remove /usr/local/bin/trx. Continuing..."
 fi
 
