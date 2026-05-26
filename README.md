@@ -40,10 +40,12 @@ No daemon required. Fully configurable via `config.toml` or the in-app Settings 
 * Renderer built on `ratatui` with deterministic layout and minimal redraw overhead  
 * Fully non-blocking event loop using **OS threads** and **mpsc channels** (no async runtime overhead)
 * Unified command model for package managers with pluggable backend architecture  
-* In-built fuzzy matcher optimized for substring scoring and ranking  
+* **Tiered fuzzy matcher** — exact → prefix → word-boundary → consecutive → subsequence scoring  
+* **Install, remove, and update packages** without leaving the TUI (`i`, `x`, `u` keys)  
 * **Settings & Themes** – Configure keybindings, themes (Nord, Dracula, etc.), and UI styles in-app
 * **Mouse Support** – Full navigation and interaction via mouse
-* **Self-updating mechanism** – Checks for new releases on startup and updates automatically
+* **Self-updating mechanism** – Checks for new releases on startup and updates automatically (`C` to recheck)
+* **Search result caching** – Repeat queries are served instantly from an in-memory cache
 * Stateless backend operations executed via system calls with structured output parsing  
 * Extensible design suitable for adding new package managers without modifying the core engine  
 
@@ -90,13 +92,17 @@ trx
 | `e` | Enter search mode |
 | `↑` / `↓` or `j` / `k` | Navigate list |
 | `space` | Toggle package selection |
-| `i` | Install selected |
-| `x` | Remove selected |
-| `U` | System upgrade |
-| `R` | Refresh databases |
+| `i` | Install selected package(s) |
+| `x` | Remove selected package(s) |
+| `u` | Update selected package(s) |
+| `U` | System-wide upgrade |
+| `R` | Refresh package databases |
+| `C` | Manually check for a TRX update |
 | `Tab` | Switch tab (Search → Installed → Updates → Settings) |
-| `?` | Toggle help overlay |
+| `?` | Toggle help overlay (full keybinding reference) |
 | `q` / `Esc` | Quit / exit current mode |
+
+> All keybindings are configurable in `~/.config/trx/config.toml`.
 
 ---
 
@@ -132,6 +138,7 @@ pub trait PackageManager: Send + Sync {
     fn get_details(&self, pkg: &str, provider: &str) -> Option<HashMap<String, String>>;
     fn install(&self, terminal: &mut DefaultTerminal, pkgs: &HashSet<String>) -> Result<(), Box<dyn std::error::Error>>;
     fn remove(&self, terminal: &mut DefaultTerminal, pkgs: &HashSet<String>) -> Result<(), Box<dyn std::error::Error>>;
+    fn update_packages(&self, terminal: &mut DefaultTerminal, pkgs: &HashSet<String>) -> Result<(), Box<dyn std::error::Error>>;
     fn system_upgrade(&self, terminal: &mut DefaultTerminal) -> Result<(), Box<dyn std::error::Error>>;
     fn refresh_databases(&self, terminal: &mut DefaultTerminal) -> Result<(), Box<dyn std::error::Error>>;
 }
@@ -157,16 +164,62 @@ Search, list loads, and detail fetches all run on **OS threads** communicating v
 
 ---
 
+## Configuration
+
+TRX stores its config at `~/.config/trx/config.toml` (created automatically on first run).
+
+```toml
+aur_helper = "yay"          # AUR helper used for AUR installs/removals (yay, paru, etc.)
+theme_name = "Default"      # Default, Nord, Dracula, OneDark, Gruvbox, Solarized, Custom
+
+[settings]
+search_debounce_ms = 200    # Delay (ms) before triggering search after typing stops
+max_search_results = 50     # Maximum number of packages shown in search results
+auto_update_check = true    # Check for TRX updates on startup
+auto_cleanup = false        # Remove unused package caches after operations
+default_tab = "Search"      # Starting tab: Search, Installed, Updates, Settings
+border_style = "Rounded"    # Border style: Plain, Rounded, Double, Thick
+spinner_type = "Dots"       # Loading spinner: Dots, Bars, Pulse, Classic
+enabled_managers = ["pacman", "yay", "brew", "apt"]
+
+[keys]
+quit = "q"
+install = "i"
+remove = "x"
+update = "u"
+check_update = "C"
+search_edit = "e"
+toggle_select = " "
+tab_next = "Tab"
+tab_prev = "BackTab"
+system_upgrade = "U"
+refresh_db = "R"
+help = "?"
+
+[theme]               # Used when theme_name = "Custom"
+border_color = "blue"
+highlight_color = "yellow"
+success_color = "green"
+error_color = "red"
+text_primary = "white"
+text_secondary = "cyan"
+# Colors can be named ("blue", "cyan", etc.) or hex ("#81A1C1")
+```
+
+---
+
 ## Roadmap
 
 - [x] Configurable keybindings via config file
 - [x] Pluggable themes and renderer settings
 - [x] Settings Tab for in-app configuration
 - [x] Mouse support
+- [x] Package update (per-package, not just system upgrade)
+- [x] Search result caching for repeated queries
+- [x] AUR search via RPC API (no yay dependency for search)
 - [ ] Transaction history and rollback
 - [ ] Batch mode for scripting / CI use
 - [ ] Dependency graph visualizer
-- [ ] Metadata caching for faster repeated searches
 - [ ] Plugin system for custom backends and widgets
 - [x] Binary releases via GitHub Actions
 
