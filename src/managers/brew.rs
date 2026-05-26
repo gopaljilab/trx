@@ -15,15 +15,25 @@ impl PackageManager for BrewManager {
             return Vec::new();
         }
 
+        let config = crate::config::Config::load();
+        let max = config.settings.max_search_results;
+
+        // Cache key includes the provider so CombinedManager searches don't
+        // collide across backends that run the same user query string.
+        let cache_key = format!("brew:{}", query);
+
         // Check cache first
         {
             let cache = SEARCH_CACHE.lock().unwrap();
-            if let Some(cached) = cache.get(query) {
+            if let Some(cached) = cache.get(&cache_key) {
                 return cached.clone();
             }
         }
 
-        // Step 1: get matching package names via `brew search`
+        // Step 1: get matching package names via `brew search`.
+        // Overfetch slightly so that after score filtering we can still return
+        // up to max_search_results entries.
+        let fetch_limit = max.max(50);
         let names: Vec<String> = {
             let output = Command::new("brew")
                 .args(["search", "--formula", query])
@@ -34,7 +44,7 @@ impl PackageManager for BrewManager {
                     .lines()
                     .map(|l| l.trim().to_string())
                     .filter(|l| !l.is_empty() && !l.starts_with("==>"))
-                    .take(30)
+                    .take(fetch_limit)
                     .collect(),
                 None => return Vec::new(),
             }
@@ -46,9 +56,6 @@ impl PackageManager for BrewManager {
 
         // Step 2: batch-fetch metadata via `brew info --json=v2`
         let info_map = fetch_brew_info_batch(&names);
-
-        let config = crate::config::Config::load();
-        let max = config.settings.max_search_results;
 
         let mut results: Vec<Package> = names
             .iter()
@@ -78,10 +85,10 @@ impl PackageManager for BrewManager {
         results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
         results.truncate(max);
 
-        // Update cache
+        // Update cache (keyed by provider+query so multi-manager setups don't collide)
         {
             let mut cache = SEARCH_CACHE.lock().unwrap();
-            cache.insert(query.to_string(), results.clone());
+            cache.insert(cache_key, results.clone());
         }
 
         results
@@ -117,7 +124,11 @@ impl PackageManager for BrewManager {
                 .filter_map(|line| {
                     let mut parts = line.split_whitespace();
                     let name = parts.next()?.to_string();
-                    let version = parts.next().unwrap_or("").to_string();
+                    // `brew list --formula --versions` may output multiple version
+                    // tokens (e.g. "pkg 1.0 2.0"); take the last token as the
+                    // most recently installed version.
+                    let versions: Vec<&str> = parts.collect();
+                    let version = versions.last().copied().unwrap_or("").to_string();
                     Some(Package {
                         provider: "brew".to_string(),
                         name,

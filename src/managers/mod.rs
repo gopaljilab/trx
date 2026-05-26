@@ -107,8 +107,18 @@ impl PackageManager for CombinedManager {
     }
 
     fn update_packages(&self, terminal: &mut DefaultTerminal, pkgs: &HashSet<String>) -> Result<(), Box<dyn std::error::Error>> {
+        // Partition `pkgs` by manager: only send a package to the backend that
+        // owns it (determined by intersecting with each manager's installed set).
+        // This prevents backends from attempting to upgrade packages they don't manage.
         for m in &self.managers {
-            m.update_packages(terminal, pkgs)?;
+            let installed = m.get_installed();
+            let manager_pkgs: HashSet<String> = pkgs.iter()
+                .filter(|p| installed.contains(*p))
+                .cloned()
+                .collect();
+            if !manager_pkgs.is_empty() {
+                m.update_packages(terminal, &manager_pkgs)?;
+            }
         }
         Ok(())
     }
