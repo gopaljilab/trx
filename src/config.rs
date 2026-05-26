@@ -155,6 +155,25 @@ impl Config {
         }
     }
 
+    /// Returns a high-contrast foreground colour (black or white) suitable for
+    /// text rendered on top of `bg`, determined by the perceived luminance of the
+    /// background (W3C relative luminance formula, simplified sRGB linearisation).
+    pub fn contrast_fg_for(bg: Color) -> Color {
+        let (r, g, b) = match bg {
+            Color::Rgb(r, g, b) => (r as f64 / 255.0, g as f64 / 255.0, b as f64 / 255.0),
+            Color::Black | Color::DarkGray => return Color::White,
+            Color::White | Color::Gray => return Color::Black,
+            // For named colours, fall back to dark fg (most themes use light bg highlights).
+            _ => return Color::Black,
+        };
+        // Linearise each sRGB channel and compute relative luminance (Y).
+        let linearise = |c: f64| -> f64 {
+            if c <= 0.04045 { c / 12.92 } else { ((c + 0.055) / 1.055).powf(2.4) }
+        };
+        let y = 0.2126 * linearise(r) + 0.7152 * linearise(g) + 0.0722 * linearise(b);
+        if y >= 0.179 { Color::Black } else { Color::White }
+    }
+
     pub fn current_theme(&self) -> Theme {
         if self.theme_name == "Custom" {
             if let Some(ref custom) = self.custom_theme {

@@ -397,12 +397,17 @@ fn draw_package_list(frame: &mut Frame, app: &mut App, area: Rect, theme: &crate
             let checkbox = if is_checked { "[x] " } else { "[ ] " };
             let status = if is_installed { " (installed)" } else { "" };
             
-            let name_style = if is_selected {
-                Style::default().fg(Color::White).add_modifier(Modifier::BOLD)
-            } else if is_installed {
+            let name_style = if is_installed {
                 Style::default().fg(success_color)
             } else {
                 Style::default().fg(primary_color)
+            };
+            // Bold + underline the focused row for extra visibility without
+            // duplicating the row-level highlight background set below.
+            let name_style = if is_selected {
+                name_style.add_modifier(Modifier::BOLD | Modifier::UNDERLINED)
+            } else {
+                name_style
             };
 
             let line = Line::from(vec![
@@ -428,12 +433,19 @@ fn draw_package_list(frame: &mut Frame, app: &mut App, area: Rect, theme: &crate
         format!(" Packages ({}) ", app.packages.len())
     };
 
+    let highlight_bg = app.config.get_color(&theme.highlight_color);
+    let highlight_fg = crate::config::Config::contrast_fg_for(highlight_bg);
     let list = List::new(items)
         .block(Block::bordered()
             .title(list_title)
             .border_type(border_type)
             .border_style(Style::default().fg(border_color)))
-        .highlight_style(Style::default().bg(app.config.get_color("blue")).fg(Color::White))
+        .highlight_style(
+            Style::default()
+                .bg(highlight_bg)
+                .fg(highlight_fg)
+                .add_modifier(Modifier::BOLD),
+        )
         .highlight_symbol(">> ");
 
     frame.render_stateful_widget(list, area, &mut app.list_state);
