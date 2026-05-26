@@ -505,12 +505,23 @@ fn draw_details(frame: &mut Frame, app: &App, area: Rect, theme: &crate::config:
 }
 
 fn draw_help_overlay(frame: &mut Frame, app: &App, theme: &crate::config::Theme) {
-    let area = centered_rect(60, 50, frame.area());
+    let area = centered_rect(60, 70, frame.area());
     frame.render_widget(Clear, area);
     let keys = &app.config.keys;
     let highlight_color = app.config.get_color(&theme.highlight_color);
+    let secondary_color = app.config.get_color(&theme.text_secondary);
     let border_type = get_border_type(&app.config.settings.border_style);
     let version = env!("CARGO_PKG_VERSION");
+
+    let key_style = Style::default().fg(highlight_color).add_modifier(Modifier::BOLD);
+    let section_style = Style::default().fg(secondary_color).add_modifier(Modifier::ITALIC);
+
+    // Display Space key as a readable label
+    let toggle_display = if keys.toggle_select == " " {
+        "Space".to_string()
+    } else {
+        keys.toggle_select.clone()
+    };
 
     let help_text = vec![
         Line::from(vec![
@@ -518,19 +529,36 @@ fn draw_help_overlay(frame: &mut Frame, app: &App, theme: &crate::config::Theme)
             Span::raw(format!("v{}", version)),
         ]),
         Line::from(""),
-        Line::from(vec![Span::styled(format!("{:<15}", keys.search_edit), Style::default().fg(highlight_color)), Span::raw("Enter search mode")]),
-        Line::from(vec![Span::styled(format!("{:<15}", keys.toggle_select), Style::default().fg(highlight_color)), Span::raw("Toggle package selection")]),
-        Line::from(vec![Span::styled(format!("{:<15}", keys.install), Style::default().fg(highlight_color)), Span::raw("Install selected packages")]),
-        Line::from(vec![Span::styled(format!("{:<15}", keys.remove), Style::default().fg(highlight_color)), Span::raw("Remove selected packages")]),
-        Line::from(vec![Span::styled(format!("{:<15}", keys.tab_next), Style::default().fg(highlight_color)), Span::raw("Next tab")]),
-        Line::from(vec![Span::styled(format!("{:<15}", keys.tab_prev), Style::default().fg(highlight_color)), Span::raw("Previous tab")]),
-        Line::from(vec![Span::styled(format!("{:<15}", keys.quit), Style::default().fg(highlight_color)), Span::raw("Quit")]),
+        Line::from(Span::styled("Navigation", section_style)),
+        Line::from(vec![Span::styled(format!("{:<18}", "↑/k  ↓/j"), key_style), Span::raw("Move up / down")]),
+        Line::from(vec![Span::styled(format!("{:<18}", "Home / End"), key_style), Span::raw("Jump to first / last")]),
+        Line::from(vec![Span::styled(format!("{:<18}", format!("{} / {}", keys.tab_next, keys.tab_prev)), key_style), Span::raw("Next / previous tab")]),
+        Line::from(""),
+        Line::from(Span::styled("Search", section_style)),
+        Line::from(vec![Span::styled(format!("{:<18}", &keys.search_edit), key_style), Span::raw("Enter search mode")]),
+        Line::from(vec![Span::styled(format!("{:<18}", "Esc"), key_style), Span::raw("Exit search / close overlay")]),
+        Line::from(""),
+        Line::from(Span::styled("Packages", section_style)),
+        Line::from(vec![Span::styled(format!("{:<18}", toggle_display), key_style), Span::raw("Toggle package selection (also toggles settings on the Settings tab)")]),
+        Line::from(vec![Span::styled(format!("{:<18}", &keys.install), key_style), Span::raw("Install selected packages")]),
+        Line::from(vec![Span::styled(format!("{:<18}", &keys.remove), key_style), Span::raw("Remove selected packages")]),
+        Line::from(vec![Span::styled(format!("{:<18}", &keys.system_upgrade), key_style), Span::raw("Full system upgrade")]),
+        Line::from(vec![Span::styled(format!("{:<18}", &keys.refresh_db), key_style), Span::raw("Refresh package databases")]),
+        Line::from(""),
+        Line::from(Span::styled("Details Panel", section_style)),
+        Line::from(vec![Span::styled(format!("{:<18}", "Mouse scroll"), key_style), Span::raw("Scroll package details (right pane)")]),
+        Line::from(""),
+        Line::from(Span::styled("Other", section_style)),
+        Line::from(vec![Span::styled(format!("{:<18}", &keys.help), key_style), Span::raw("Toggle this help overlay")]),
+        Line::from(vec![Span::styled(format!("{:<18}", &keys.quit), key_style), Span::raw("Quit")]),
+        Line::from(""),
+        Line::from(Span::styled("Mouse: click tabs · scroll list/details · click checkboxes", section_style)),
     ];
 
     frame.render_widget(
         Paragraph::new(help_text)
             .block(Block::bordered()
-                .title("Help")
+                .title(" Help — Keybindings ")
                 .border_type(border_type)
                 .border_style(Style::default().fg(app.config.get_color(&theme.border_color))))
             .wrap(Wrap { trim: true }),
