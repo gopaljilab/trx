@@ -1,4 +1,4 @@
-use crate::managers::{Package, PackageManager};
+use crate::managers::{Package, PackageManager, SEARCH_CACHE};
 use ratatui::DefaultTerminal;
 use std::collections::{HashMap, HashSet};
 use std::process::Command;
@@ -14,39 +14,98 @@ impl PackageManager for BrewManager {
         if query.is_empty() {
             return Vec::new();
         }
-        let output = Command::new("brew").args(&["search", query]).output().ok();
 
-        if let Some(output) = output {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            stdout
-                .lines()
-                .map(|line| {
-                    let name = line.trim().to_string();
-                    let score = crate::fuzzy::fuzzy_match(query, &name);
+        let config = crate::config::Config::load();
+        let max = config.settings.max_search_results;
+
+        // Cache key includes the provider so CombinedManager searches don't
+        // collide across backends that run the same user query string.
+        let cache_key = format!("brew:{}", query);
+
+        // Check cache first
+        {
+            let cache = SEARCH_CACHE.lock().unwrap();
+            if let Some(cached) = cache.get(&cache_key) {
+                return cached.clone();
+            }
+        }
+
+        // Step 1: get matching package names via `brew search`.
+        // Overfetch slightly so that after score filtering we can still return
+        // up to max_search_results entries.
+        let fetch_limit = max.max(50);
+        let names: Vec<String> = {
+            let output = Command::new("brew")
+                .args(["search", "--formula", query])
+                .output()
+                .ok();
+            match output {
+                Some(o) => String::from_utf8_lossy(&o.stdout)
+                    .lines()
+                    .map(|l| l.trim().to_string())
+                    .filter(|l| !l.is_empty() && !l.starts_with("==>"))
+                    .take(fetch_limit)
+                    .collect(),
+                None => return Vec::new(),
+            }
+        };
+
+        if names.is_empty() {
+            return Vec::new();
+        }
+
+        // Step 2: batch-fetch metadata via `brew info --json=v2`
+        let info_map = fetch_brew_info_batch(&names);
+
+        let mut results: Vec<Package> = names
+            .iter()
+            .map(|name| {
+                let score = crate::fuzzy::fuzzy_match(query, name);
+                if let Some((version, description)) = info_map.get(name.as_str()) {
                     Package {
                         provider: "brew".to_string(),
-                        name,
-                        version: "".to_string(), // search doesn't give version
-                        description: "".to_string(), // search doesn't give desc
+                        name: name.clone(),
+                        version: version.clone(),
+                        description: description.clone(),
                         score,
                     }
-                })
-                .filter(|p| p.score > 0.01)
-                .collect()
-        } else {
-            Vec::new()
+                } else {
+                    Package {
+                        provider: "brew".to_string(),
+                        name: name.clone(),
+                        version: String::new(),
+                        description: String::new(),
+                        score,
+                    }
+                }
+            })
+            .filter(|p| p.score > 0.01)
+            .collect();
+
+        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+        results.truncate(max);
+
+        // Update cache (keyed by provider+query so multi-manager setups don't collide)
+        {
+            let mut cache = SEARCH_CACHE.lock().unwrap();
+            cache.insert(cache_key, results.clone());
         }
+
+        results
     }
 
     fn get_installed(&self) -> HashSet<String> {
         let output = Command::new("brew")
-            .args(&["list", "--formula"])
+            .args(["list", "--formula", "--versions"])
             .output()
             .ok();
 
         if let Some(output) = output {
             let stdout = String::from_utf8_lossy(&output.stdout);
-            stdout.lines().map(|s| s.trim().to_string()).collect()
+            stdout
+                .lines()
+                .filter_map(|l| l.split_whitespace().next().map(|s| s.to_string()))
+                .collect()
         } else {
             HashSet::new()
         }
@@ -54,7 +113,7 @@ impl PackageManager for BrewManager {
 
     fn get_installed_details(&self) -> Vec<Package> {
         let output = Command::new("brew")
-            .args(&["list", "--formula"])
+            .args(["list", "--formula", "--versions"])
             .output()
             .ok();
 
@@ -62,12 +121,21 @@ impl PackageManager for BrewManager {
             let stdout = String::from_utf8_lossy(&output.stdout);
             stdout
                 .lines()
-                .map(|line| Package {
-                    provider: "brew".to_string(),
-                    name: line.trim().to_string(),
-                    version: "Installed".to_string(),
-                    description: "".to_string(),
-                    score: 1.0,
+                .filter_map(|line| {
+                    let mut parts = line.split_whitespace();
+                    let name = parts.next()?.to_string();
+                    // `brew list --formula --versions` may output multiple version
+                    // tokens (e.g. "pkg 1.0 2.0"); take the last token as the
+                    // most recently installed version.
+                    let versions: Vec<&str> = parts.collect();
+                    let version = versions.last().copied().unwrap_or("").to_string();
+                    Some(Package {
+                        provider: "brew".to_string(),
+                        name,
+                        version,
+                        description: String::new(),
+                        score: 1.0,
+                    })
                 })
                 .collect()
         } else {
@@ -76,18 +144,24 @@ impl PackageManager for BrewManager {
     }
 
     fn get_updates(&self) -> Vec<Package> {
-        let output = Command::new("brew").args(&["outdated"]).output().ok();
+        let output = Command::new("brew").args(["outdated", "--verbose"]).output().ok();
 
         if let Some(output) = output {
             let stdout = String::from_utf8_lossy(&output.stdout);
             stdout
                 .lines()
-                .map(|line| Package {
-                    provider: "brew".to_string(),
-                    name: line.trim().to_string(),
-                    version: "Outdated".to_string(),
-                    description: "".to_string(),
-                    score: 1.0,
+                .filter_map(|line| {
+                    // format: "name (installed_version) < latest_version"
+                    let mut parts = line.splitn(2, ' ');
+                    let name = parts.next()?.trim().to_string();
+                    let version_info = parts.next().unwrap_or("").trim().to_string();
+                    Some(Package {
+                        provider: "brew".to_string(),
+                        name,
+                        version: version_info,
+                        description: String::new(),
+                        score: 1.0,
+                    })
                 })
                 .collect()
         } else {
@@ -104,72 +178,44 @@ impl PackageManager for BrewManager {
             }
         }
 
-        let output = Command::new("brew").args(&["info", pkg]).output().ok()?;
+        let output = Command::new("brew").args(["info", "--json=v2", pkg]).output().ok()?;
 
         let stdout = String::from_utf8_lossy(&output.stdout);
+        let json: serde_json::Value = serde_json::from_str(&stdout).ok()?;
+
+        let formula = json["formulae"].as_array()?.first()?;
         let mut out = HashMap::new();
-        
-        let lines: Vec<&str> = stdout.lines().collect();
-        if lines.is_empty() {
-            return None;
-        }
 
-        // Line 1: name: version (status)
-        if let Some(first_line) = lines.get(0) {
-            let parts: Vec<&str> = first_line.splitn(2, ':').collect();
-            if parts.len() == 2 {
-                out.insert("Name".into(), parts[0].trim().into());
-                out.insert("Version".into(), parts[1].trim().into());
-            } else {
-                out.insert("Info".into(), first_line.trim().into());
+        if let Some(name) = formula["name"].as_str() {
+            out.insert("Name".into(), name.into());
+        }
+        if let Some(ver) = formula["versions"]["stable"].as_str() {
+            out.insert("Version".into(), ver.into());
+        }
+        if let Some(desc) = formula["desc"].as_str() {
+            out.insert("Description".into(), desc.into());
+        }
+        if let Some(homepage) = formula["homepage"].as_str() {
+            out.insert("Homepage".into(), homepage.into());
+        }
+        if let Some(license) = formula["license"].as_str() {
+            out.insert("License".into(), license.into());
+        }
+        if let Some(tap) = formula["tap"].as_str() {
+            out.insert("Tap".into(), tap.into());
+        }
+        if let Some(deps) = formula["dependencies"].as_array() {
+            let dep_list: Vec<&str> = deps.iter().filter_map(|d| d.as_str()).collect();
+            if !dep_list.is_empty() {
+                out.insert("Dependencies".into(), dep_list.join(", "));
             }
         }
-
-        // Line 2: Description
-        if let Some(second_line) = lines.get(1) {
-            out.insert("Description".into(), second_line.trim().into());
-        }
-
-        // Line 3: URL
-        if let Some(third_line) = lines.get(2) {
-            out.insert("URL".into(), third_line.trim().into());
-        }
-
-        // Subsequent lines: License, From, Caveats, etc.
-        let mut caveats = Vec::new();
-        let mut in_caveats = false;
-        let mut analytics = Vec::new();
-        let mut in_analytics = false;
-
-        for line in lines.iter().skip(3) {
-            let l = line.trim();
-            if l.is_empty() { continue; }
-
-            if l.starts_with("License:") {
-                out.insert("License".into(), l.replace("License:", "").trim().into());
-            } else if l.starts_with("From:") {
-                out.insert("From".into(), l.replace("From:", "").trim().into());
-            } else if l.starts_with("==> Caveats") {
-                in_caveats = true;
-                in_analytics = false;
-            } else if l.starts_with("==> Analytics") {
-                in_analytics = true;
-                in_caveats = false;
-            } else if l.starts_with("==>") {
-                in_caveats = false;
-                in_analytics = false;
-            } else if in_caveats {
-                caveats.push(l);
-            } else if in_analytics {
-                analytics.push(l);
+        if let Some(installed) = formula["installed"].as_array() {
+            if let Some(first) = installed.first() {
+                if let Some(installed_ver) = first["version"].as_str() {
+                    out.insert("Installed Version".into(), installed_ver.into());
+                }
             }
-        }
-
-        if !caveats.is_empty() {
-            out.insert("Caveats".into(), caveats.join(" "));
-        }
-        if !analytics.is_empty() {
-            out.insert("Analytics".into(), analytics.join(" | "));
         }
 
         // Update cache
@@ -205,6 +251,21 @@ impl PackageManager for BrewManager {
         Ok(())
     }
 
+    fn update_packages(
+        &self,
+        terminal: &mut DefaultTerminal,
+        pkgs: &HashSet<String>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        if pkgs.is_empty() {
+            return Ok(());
+        }
+        let mut args = vec!["upgrade"];
+        let pkg_refs: Vec<&str> = pkgs.iter().map(|s| s.as_str()).collect();
+        args.extend(pkg_refs);
+        crate::execute_external_command(terminal, "brew", &args)?;
+        Ok(())
+    }
+
     fn system_upgrade(
         &self,
         terminal: &mut DefaultTerminal,
@@ -220,4 +281,43 @@ impl PackageManager for BrewManager {
         crate::execute_external_command(terminal, "brew", &["update"])?;
         Ok(())
     }
+}
+
+/// Batch-fetch version and description for a list of formula names using
+/// `brew info --json=v2`. Falls back to an empty map on error.
+fn fetch_brew_info_batch(names: &[String]) -> HashMap<String, (String, String)> {
+    if names.is_empty() {
+        return HashMap::new();
+    }
+
+    let mut args = vec!["info", "--json=v2"];
+    let name_refs: Vec<&str> = names.iter().map(|s| s.as_str()).collect();
+    args.extend(name_refs);
+
+    let output = match Command::new("brew").args(&args).output() {
+        Ok(o) => o,
+        Err(_) => return HashMap::new(),
+    };
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let json: serde_json::Value = match serde_json::from_str(&stdout) {
+        Ok(j) => j,
+        Err(_) => return HashMap::new(),
+    };
+
+    let mut map = HashMap::new();
+    if let Some(formulae) = json["formulae"].as_array() {
+        for formula in formulae {
+            let name = formula["name"].as_str().unwrap_or("").to_string();
+            let version = formula["versions"]["stable"]
+                .as_str()
+                .unwrap_or("")
+                .to_string();
+            let description = formula["desc"].as_str().unwrap_or("").to_string();
+            if !name.is_empty() {
+                map.insert(name, (version, description));
+            }
+        }
+    }
+    map
 }

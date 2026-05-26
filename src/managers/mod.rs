@@ -26,6 +26,7 @@ pub trait PackageManager: Send + Sync {
     fn get_details(&self, pkg: &str, provider: &str) -> Option<HashMap<String, String>>;
     fn install(&self, terminal: &mut DefaultTerminal, pkgs: &HashSet<String>) -> Result<(), Box<dyn std::error::Error>>;
     fn remove(&self, terminal: &mut DefaultTerminal, pkgs: &HashSet<String>) -> Result<(), Box<dyn std::error::Error>>;
+    fn update_packages(&self, terminal: &mut DefaultTerminal, pkgs: &HashSet<String>) -> Result<(), Box<dyn std::error::Error>>;
     fn system_upgrade(&self, terminal: &mut DefaultTerminal) -> Result<(), Box<dyn std::error::Error>>;
     fn refresh_databases(&self, terminal: &mut DefaultTerminal) -> Result<(), Box<dyn std::error::Error>>;
 }
@@ -101,6 +102,23 @@ impl PackageManager for CombinedManager {
     fn remove(&self, terminal: &mut DefaultTerminal, pkgs: &HashSet<String>) -> Result<(), Box<dyn std::error::Error>> {
         for m in &self.managers {
             m.remove(terminal, pkgs)?;
+        }
+        Ok(())
+    }
+
+    fn update_packages(&self, terminal: &mut DefaultTerminal, pkgs: &HashSet<String>) -> Result<(), Box<dyn std::error::Error>> {
+        // Partition `pkgs` by manager: only send a package to the backend that
+        // owns it (determined by intersecting with each manager's installed set).
+        // This prevents backends from attempting to upgrade packages they don't manage.
+        for m in &self.managers {
+            let installed = m.get_installed();
+            let manager_pkgs: HashSet<String> = pkgs.iter()
+                .filter(|p| installed.contains(*p))
+                .cloned()
+                .collect();
+            if !manager_pkgs.is_empty() {
+                m.update_packages(terminal, &manager_pkgs)?;
+            }
         }
         Ok(())
     }

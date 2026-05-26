@@ -105,31 +105,35 @@ impl PackageManager for ArchManager {
     }
 
     fn install(&self, terminal: &mut DefaultTerminal, pkgs: &HashSet<String>) -> Result<(), Box<dyn std::error::Error>> {
-        let mut pacman_pkgs = HashSet::new();
-        let mut aur_pkgs = HashSet::new();
-
-        for name in pkgs {
-            // Check provider prefix if possible, or just try to find in current list
-            // For simplicity in the trait, we might need a better way to distinguish,
-            // but for ArchManager we can check if it's in official repos first or has aur/ prefix
-            if name.starts_with("aur/") {
-                aur_pkgs.insert(name.clone());
-            } else {
-                pacman_pkgs.insert(name.clone());
-            }
-        }
-
-        if !pacman_pkgs.is_empty() {
-            pacman::pacman_install(terminal, &pacman_pkgs)?;
-        }
-        if !aur_pkgs.is_empty() {
-            yay::aur_install(terminal, &aur_pkgs, &self.aur_helper)?;
+        if !self.aur_helper.is_empty() {
+            // yay (or configured AUR helper) can transparently install both
+            // official-repo and AUR packages; aur_install strips any "aur/" prefix.
+            yay::aur_install(terminal, pkgs, &self.aur_helper)?;
+        } else {
+            // No AUR helper available — install via pacman only.
+            pacman::pacman_install(terminal, pkgs)?;
         }
         Ok(())
     }
 
     fn remove(&self, terminal: &mut DefaultTerminal, pkgs: &HashSet<String>) -> Result<(), Box<dyn std::error::Error>> {
         pacman::pacman_remove(terminal, pkgs)
+    }
+
+    fn update_packages(&self, terminal: &mut DefaultTerminal, pkgs: &HashSet<String>) -> Result<(), Box<dyn std::error::Error>> {
+        if pkgs.is_empty() {
+            return Ok(());
+        }
+        if !self.aur_helper.is_empty() {
+            // When an AUR helper is available, route everything through it —
+            // it handles both official-repo and AUR packages transparently.
+            // aur_install already strips any "aur/" prefix before invoking the helper.
+            yay::aur_install(terminal, pkgs, &self.aur_helper)?;
+        } else {
+            // No AUR helper; treat all selected packages as official-repo.
+            pacman::pacman_install(terminal, pkgs)?;
+        }
+        Ok(())
     }
 
     fn system_upgrade(&self, terminal: &mut DefaultTerminal) -> Result<(), Box<dyn std::error::Error>> {
