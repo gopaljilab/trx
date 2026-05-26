@@ -433,6 +433,8 @@ fn draw_package_list(frame: &mut Frame, app: &mut App, area: Rect, theme: &crate
         format!(" Packages ({}) ", app.packages.len())
     };
 
+    let highlight_bg = app.config.get_color(&theme.highlight_color);
+    let highlight_fg = crate::config::Config::contrast_fg_for(highlight_bg);
     let list = List::new(items)
         .block(Block::bordered()
             .title(list_title)
@@ -440,8 +442,8 @@ fn draw_package_list(frame: &mut Frame, app: &mut App, area: Rect, theme: &crate
             .border_style(Style::default().fg(border_color)))
         .highlight_style(
             Style::default()
-                .bg(app.config.get_color(&theme.highlight_color))
-                .fg(Color::Black)
+                .bg(highlight_bg)
+                .fg(highlight_fg)
                 .add_modifier(Modifier::BOLD),
         )
         .highlight_symbol(">> ");
