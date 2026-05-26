@@ -1,10 +1,53 @@
+/// Score a fuzzy query against a target string.
+///
+/// Scoring tiers (highest → lowest priority):
+///   1. Exact match                      → 1000.0
+///   2. Prefix match                     → 200–499  (penalised by excess length)
+///   3. Word-boundary / separator prefix → 100–199
+///   4. Consecutive substring anywhere   → based on run length
+///   5. General fuzzy subsequence        → calculated score
+///   0. No match                         → 0.0
 pub fn fuzzy_match(query: &str, target: &str) -> f64 {
     if query.is_empty() {
         return 0.0;
     }
 
-    let q: Vec<char> = query.to_lowercase().chars().collect();
-    let t: Vec<char> = target.to_lowercase().chars().collect();
+    let q_lower = query.to_lowercase();
+    let t_lower = target.to_lowercase();
+
+    // Tier 1 – exact match
+    if q_lower == t_lower {
+        return 1000.0;
+    }
+
+    // Tier 2 – prefix match (target starts with the full query)
+    if t_lower.starts_with(q_lower.as_str()) {
+        // Shorter targets rank higher for the same prefix
+        let excess = (target.len().saturating_sub(query.len())) as f64;
+        return (499.0 - excess * 3.0).max(200.0);
+    }
+
+    // Tier 3 – query appears after a word-boundary separator in the target
+    let separators = ['-', '_', '/', '.', ' ', '+', '@'];
+    if separators.iter().any(|&sep| {
+        t_lower
+            .split(sep)
+            .any(|word| word.starts_with(q_lower.as_str()))
+    }) {
+        let excess = (target.len().saturating_sub(query.len())) as f64;
+        return (199.0 - excess * 2.0).max(100.0);
+    }
+
+    // Tier 4 – consecutive substring anywhere (case-insensitive)
+    if let Some(pos) = t_lower.find(q_lower.as_str()) {
+        let pos_bonus = if pos == 0 { 10.0 } else { 0.0 };
+        let excess = (target.len().saturating_sub(query.len())) as f64;
+        return (99.0 + pos_bonus - excess * 1.5).max(30.0);
+    }
+
+    // Tier 5 – general fuzzy subsequence
+    let q: Vec<char> = q_lower.chars().collect();
+    let t: Vec<char> = t_lower.chars().collect();
 
     let Some(indices) = fuzzy_get_indexes(&q, &t) else {
         return 0.0;
@@ -39,7 +82,8 @@ pub fn fuzzy_get_indexes(query: &[char], target: &[char]) -> Option<Vec<usize>> 
     Some(out)
 }
 
-//fuzzy scoring inspired from VSCode fuzzy finder algorithm
+/// Fuzzy scoring inspired by VSCode's fuzzy finder algorithm.
+/// Scores stay below 30 so they don't overlap with the substring tiers above.
 pub fn calculate_score(query: &[char], target: &[char], indices: &[usize]) -> f64 {
     if query.is_empty() || indices.is_empty() {
         return 0.0;
@@ -60,10 +104,12 @@ pub fn calculate_score(query: &[char], target: &[char], indices: &[usize]) -> f6
             consecutive = 0;
         }
 
+        // Bonus for match at start of target
         if idx == 0 {
             score += 4.0;
         }
 
+        // Bonus for match after a separator
         if idx > 0 {
             let prev = target[idx - 1];
             if prev == '-' || prev == '_' || prev == '/' || prev == '.' || prev == ' ' {
@@ -71,11 +117,13 @@ pub fn calculate_score(query: &[char], target: &[char], indices: &[usize]) -> f6
             }
         }
 
+        // Gap penalty
         if i > 0 {
             let gap = (idx as i32 - indices[i - 1] as i32 - 1).max(0) as f64;
             score -= gap * 0.15;
         }
     }
 
-    score / (tlen * 0.15 + 1.0)
+    // Normalise: longer targets rank lower for the same raw score
+    (score / (tlen * 0.15 + 1.0)).min(29.0)
 }
