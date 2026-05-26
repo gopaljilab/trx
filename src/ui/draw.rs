@@ -384,9 +384,20 @@ fn draw_package_list(frame: &mut Frame, app: &mut App, area: Rect, theme: &crate
 
     let items: Vec<ListItem> = if app.packages.is_empty() {
         if app.loading {
-            vec![ListItem::new("  Searching...")]
+            vec![ListItem::new(Line::from(Span::styled(
+                "  Searching...",
+                Style::default().fg(secondary_color),
+            )))]
+        } else if !app.last_search_query.is_empty() || !matches!(app.current_tab, crate::ui::app::Tab::Search) {
+            vec![ListItem::new(Line::from(Span::styled(
+                "  No results found.",
+                Style::default().fg(secondary_color).add_modifier(Modifier::ITALIC),
+            )))]
         } else {
-            vec![ListItem::new("  No packages found.")]
+            vec![ListItem::new(Line::from(Span::styled(
+                "  Start typing to search...",
+                Style::default().fg(secondary_color).add_modifier(Modifier::ITALIC),
+            )))]
         }
     } else {
         app.packages.iter().enumerate().map(|(i, pkg)| {
