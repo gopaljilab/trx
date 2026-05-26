@@ -60,6 +60,7 @@ pub struct App {
     result_rx: Receiver<(String, Vec<Package>)>,
     details_tx: Sender<DetailsState>,
     details_rx: Receiver<DetailsState>,
+    update_tx: Sender<Option<(String, String)>>,
     update_rx: Receiver<Option<(String, String)>>,
     last_input_time: Instant,
     pending_search: bool,
@@ -76,12 +77,14 @@ impl App {
         let (update_tx, update_rx) = std::sync::mpsc::channel();
         let config = crate::config::Config::load();
         
-        // Spawn parallel update check if enabled
+        // Spawn parallel update check if enabled; keep a clone of the sender
+        // so the user can manually re-trigger a check at any time.
         if config.settings.auto_update_check {
             let skipped = config.settings.skipped_update_version.clone();
+            let tx = update_tx.clone();
             thread::spawn(move || {
                 let res = crate::updater::check_for_updates(skipped.as_deref());
-                let _ = update_tx.send(res);
+                let _ = tx.send(res);
             });
         }
 
@@ -124,6 +127,7 @@ impl App {
             result_rx,
             details_tx,
             details_rx,
+            update_tx,
             update_rx,
             last_input_time: Instant::now(),
             pending_search: false,
@@ -140,6 +144,19 @@ impl App {
     pub fn set_popup(&mut self, msg: String, color: Color) {
         self.popup_message = Some((msg, color));
         self.popup_timer = Some(Instant::now());
+    }
+
+    /// Spawn a fresh update-check thread and funnel the result back through
+    /// the existing `update_rx` channel so the main event loop handles it
+    /// identically to the automatic startup check.
+    pub fn trigger_manual_update_check(&self) {
+        let tx = self.update_tx.clone();
+        // Bypass the skipped-version filter for manual checks — the user
+        // explicitly asked, so always show the prompt even for a skipped tag.
+        thread::spawn(move || {
+            let res = crate::updater::check_for_updates(None);
+            let _ = tx.send(res);
+        });
     }
 
     fn move_cursor_left(&mut self) {
@@ -602,6 +619,8 @@ impl App {
                                     if let Tab::Updates = self.current_tab {
                                         self.reset_tab_state();
                                     }
+                                } else if is_key(key.code, &keys.check_update) {
+                                    self.trigger_manual_update_check();
                                 } else if is_key(key.code, &keys.toggle_select) {
                                     if self.current_tab == Tab::Settings {
                                         self.handle_settings_toggle();
