@@ -259,6 +259,9 @@ impl App {
                 to_update.insert(pkg.name.clone());
             }
         }
+        // Only update packages that are actually installed; avoids invoking
+        // backend-specific upgrade commands on packages the system doesn't own.
+        to_update.retain(|name| self.installed_packages.contains(name));
         if !to_update.is_empty() {
             self.manager.update_packages(terminal, &to_update)?;
         }
@@ -611,8 +614,11 @@ impl App {
                                 } else if is_key(key.code, &keys.update) {
                                     let _ = self.run_update_command(terminal);
                                     self.installed_packages = self.manager.get_installed();
-                                    if let Tab::Updates = self.current_tab {
-                                        self.reset_tab_state();
+                                    // Reset both Updates and Installed tabs so their lists
+                                    // reflect the post-update state immediately.
+                                    match self.current_tab {
+                                        Tab::Updates | Tab::Installed => self.reset_tab_state(),
+                                        _ => {}
                                     }
                                 } else if is_key(key.code, &keys.system_upgrade) {
                                     let _ = self.manager.system_upgrade(terminal);
