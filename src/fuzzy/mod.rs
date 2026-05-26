@@ -22,27 +22,41 @@ pub fn fuzzy_match(query: &str, target: &str) -> f64 {
 
     // Tier 2 – prefix match (target starts with the full query)
     if t_lower.starts_with(q_lower.as_str()) {
-        // Shorter targets rank higher for the same prefix
-        let excess = (target.len().saturating_sub(query.len())) as f64;
+        // Shorter targets rank higher for the same prefix; use char count for Unicode safety.
+        let excess = (t_lower.chars().count().saturating_sub(q_lower.chars().count())) as f64;
         return (499.0 - excess * 3.0).max(200.0);
     }
 
-    // Tier 3 – query appears after a word-boundary separator in the target
-    let separators = ['-', '_', '/', '.', ' ', '+', '@'];
-    if separators.iter().any(|&sep| {
-        t_lower
-            .split(sep)
-            .any(|word| word.starts_with(q_lower.as_str()))
-    }) {
-        let excess = (target.len().saturating_sub(query.len())) as f64;
-        return (199.0 - excess * 2.0).max(100.0);
+    // Tier 3 – query appears after a word-boundary separator in the target.
+    // Single-pass scan: when a separator is encountered, check whether the
+    // remainder of the string starts with the query.  This avoids the
+    // O(#separators × target_len) cost of repeated split/traversal.
+    {
+        let sep_set = ['-', '_', '/', '.', ' ', '+', '@'];
+        let mut after_sep = false;
+        let mut word_boundary_match = false;
+        for (byte_pos, ch) in t_lower.char_indices() {
+            if sep_set.contains(&ch) {
+                after_sep = true;
+            } else if after_sep {
+                if t_lower[byte_pos..].starts_with(q_lower.as_str()) {
+                    word_boundary_match = true;
+                    break;
+                }
+                after_sep = false;
+            }
+        }
+        if word_boundary_match {
+            let excess = (t_lower.chars().count().saturating_sub(q_lower.chars().count())) as f64;
+            return (199.0 - excess * 2.0).max(100.0);
+        }
     }
 
-    // Tier 4 – consecutive substring anywhere (case-insensitive)
-    if let Some(pos) = t_lower.find(q_lower.as_str()) {
-        let pos_bonus = if pos == 0 { 10.0 } else { 0.0 };
-        let excess = (target.len().saturating_sub(query.len())) as f64;
-        return (99.0 + pos_bonus - excess * 1.5).max(30.0);
+    // Tier 4 – consecutive substring anywhere (case-insensitive).
+    // Note: pos == 0 is already handled by Tier 2, so pos_bonus is omitted.
+    if t_lower.contains(q_lower.as_str()) {
+        let excess = (t_lower.chars().count().saturating_sub(q_lower.chars().count())) as f64;
+        return (99.0 - excess * 1.5).max(30.0);
     }
 
     // Tier 5 – general fuzzy subsequence
