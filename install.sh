@@ -55,8 +55,8 @@ if [ -f "$BIN_PATH" ]; then
     rm -f "$BIN_PATH"
 fi
 
-# Also check common global path just in case
-if [ -f "/usr/local/bin/trx" ]; then
+# Also check common global path just in case (directory may not exist on macOS)
+if [ -d "/usr/local/bin" ] && [ -f "/usr/local/bin/trx" ]; then
     echo "Existing global installation found at /usr/local/bin/trx."
     echo "Removing old global version..."
     sudo rm -f "/usr/local/bin/trx" || echo "Failed to remove /usr/local/bin/trx. Continuing..."
