@@ -1,0 +1,468 @@
+"use client";
+
+import { useState, useRef, useEffect } from "react";
+import { motion, useReducedMotion } from "motion/react";
+import Link from "next/link";
+import { SiApple, SiArchlinux, SiUbuntu, SiGithub } from "react-icons/si";
+
+// ─── T-Rex head silhouette logo (SVG, facing right) ─────────────────────────
+function TrxDinoLogo({ size = 80 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={Math.round(size * 0.86)}
+      viewBox="220 260 580 500"
+      fill="currentColor"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <path
+        d="M 535.500 268.646 C 527.996 270.603, 515.555 274.680, 508.650 277.444 C 500.619 280.659, 500.193 280.716, 479.500 281.343 C 449.126 282.263, 431.848 284.817, 417.239 290.545 C 400.563 297.084, 348.749 333.103, 332.500 349.451 C 326.317 355.672, 323.211 359.885, 318.826 368 C 305.450 392.750, 291.886 430.270, 278.033 480.838 C 264.041 531.913, 260.328 543.082, 250.555 563.500 C 243.801 577.611, 238.469 586.751, 230.877 597.235 C 228.195 600.939, 226 604.542, 226 605.241 C 226 607.860, 248.161 626.148, 270.916 642.308 C 289.302 655.365, 323.523 676.817, 324.457 675.871 C 324.659 675.667, 325.559 670.100, 326.457 663.500 C 333.037 615.163, 349.987 561.367, 371.673 520 C 378.240 507.474, 385.948 494, 386.548 494 C 386.724 494, 385.307 498.613, 383.400 504.250 C 366.987 552.769, 355.340 631.982, 357.607 679.662 L 358.281 693.825 371.390 700.001 C 415.217 720.647, 478.046 741.059, 526.500 750.392 C 543.725 753.710, 563.755 756.578, 564.500 755.833 C 564.828 755.505, 560.344 747.646, 554.534 738.368 C 542.402 718.996, 526.918 689.064, 521.518 674.547 C 519.082 667.999, 517.630 662.151, 517.275 657.456 C 516.773 650.820, 517.102 649.200, 521.947 634.409 C 531.275 605.929, 531.084 606.254, 540.130 603.534 C 549.821 600.619, 568.272 597.809, 581 597.308 C 591.278 596.904, 595.100 597.182, 602.500 598.869 C 612.595 601.171, 633.733 607.361, 657.167 614.877 C 677.794 621.492, 686.573 622.721, 698.454 620.658 C 715.539 617.690, 727.875 609.164, 739.915 592 C 750.223 577.306, 751.488 572.212, 746.210 566.651 C 743.531 563.828, 743.167 562.668, 742.714 555.500 C 742.254 548.208, 739.648 539, 738.046 539 C 737.688 539, 736.614 541.138, 735.659 543.750 C 734.705 546.362, 732.372 551.200, 730.474 554.500 L 727.025 560.500 726.977 555.500 C 726.923 549.858, 723.153 537.830, 721.250 537.228 C 720.563 537.011, 720 537.500, 720 538.315 C 720 542.182, 708.745 559.907, 706.250 559.969 C 705.399 559.990, 704.978 558.165, 704.932 554.250 C 704.855 547.817, 702.039 535.801, 700.500 535.341 C 699.950 535.176, 697.852 537.845, 695.837 541.271 C 687.964 554.660, 681.100 559.781, 683.214 550.689 C 685.055 542.772, 682.384 525.295, 679.169 524.223 C 678.526 524.009, 678 524.488, 678 525.288 C 678 526.913, 669.680 539.694, 665.295 544.807 C 660.688 550.178, 659.504 548.638, 659.474 537.239 C 659.451 528.348, 657.847 519.981, 656.172 520.013 C 655.803 520.020, 653.954 522.487, 652.066 525.495 C 650.177 528.504, 647.138 532.412, 645.314 534.181 C 640.743 538.610, 639.711 537.202, 639.530 526.288 C 639.449 521.455, 638.838 516.208, 638.171 514.629 L 636.958 511.758 634.108 515.629 C 629.914 521.324, 625.342 525.329, 623.988 524.492 C 623.242 524.032, 622.912 521.523, 623.083 517.633 C 623.806 501.276, 622.870 499.941, 615.539 506.875 L 609.950 512.161 602.020 504.700 C 597.658 500.597, 592.060 495.956, 589.579 494.387 C 583.186 490.342, 580.500 483.128, 580.500 470 C 580.500 461.139, 580.723 460.089, 583.815 454.390 C 585.638 451.029, 588.886 446.564, 591.032 444.469 L 594.934 440.659 601.217 443.120 C 607.332 445.516, 607.522 445.701, 608.328 450.041 C 608.783 452.493, 609.480 456.075, 609.876 458 L 610.596 461.500 615.721 456.174 C 620.337 451.378, 621.065 450.964, 623.036 452.019 C 625.107 453.128, 625.203 453.725, 624.827 463.095 C 624.442 472.684, 624.494 472.978, 626.465 472.355 C 629.931 471.259, 632.875 468.936, 637.288 463.814 C 643.025 457.155, 644.527 457.826, 645.398 467.437 C 645.763 471.465, 645.765 476.615, 645.403 478.881 C 644.987 481.484, 645.126 483, 645.782 483 C 648.100 483, 656.721 474.928, 660 469.689 C 662.526 465.653, 664.126 464.083, 665.750 464.048 C 667.883 464.003, 667.999 464.378, 667.980 471.250 C 667.969 475.238, 667.539 481.408, 667.026 484.963 C 666.512 488.517, 666.275 491.608, 666.499 491.832 C 666.723 492.056, 669.155 490.588, 671.904 488.571 C 677.725 484.298, 682.947 477.541, 686.605 469.551 C 688.706 464.962, 689.602 463.945, 691.325 464.193 C 692.978 464.432, 693.638 465.502, 694.288 469 C 695.147 473.623, 694.581 489.738, 693.419 493.750 C 692.327 497.516, 694.612 496.364, 701.351 489.750 C 708.227 483.002, 712.063 476.469, 715.552 465.564 C 717.079 460.791, 718.399 458.397, 719.784 457.884 C 721.540 457.235, 721.949 457.739, 722.978 461.820 C 723.627 464.394, 724.416 470.464, 724.731 475.309 L 725.304 484.118 729.442 480.057 C 734.623 474.972, 739.418 467.131, 742.055 459.432 C 745.337 449.849, 745.087 450.232, 746.261 453 C 746.844 454.375, 747.362 461.193, 747.411 468.151 C 747.510 482.214, 747.544 482.256, 753.685 475.832 C 758.110 471.203, 763.712 461.590, 765.748 455.129 C 767.232 450.423, 767.547 450.023, 768.129 452.103 C 768.499 453.421, 768.845 459.113, 768.900 464.750 C 768.955 470.387, 769.398 475, 769.884 475 C 770.370 475, 772.381 473.213, 774.354 471.030 C 778.335 466.623, 782.837 458.201, 785.407 450.352 C 786.695 446.420, 787.998 444.605, 790.925 442.668 C 793.236 441.139, 795.652 438.286, 797.009 435.481 C 799.026 431.315, 799.190 429.924, 798.581 422.165 C 797.216 404.768, 787.994 365.434, 783.227 356.676 C 781.186 352.926, 778.165 350.003, 770.273 344.143 C 758.682 335.536, 746.406 328.204, 737.500 324.568 C 734.200 323.221, 722.275 319.312, 711 315.881 L 690.500 309.643 679 310.013 C 652.473 310.867, 642.710 309.590, 616.702 301.863 C 604.167 298.140, 602.199 297.112, 587.500 286.619 C 580.900 281.908, 571.318 275.919, 566.206 273.310 C 557.191 268.709, 556.622 268.561, 547.206 268.346 C 541.868 268.224, 536.600 268.359, 535.500 268.646 M 538.075 285.030 C 529.221 286.882, 502.692 297.071, 501.436 299.104 C 501.131 299.597, 494.496 300.004, 486.691 300.010 C 456.852 300.030, 432.667 304.514, 418.500 312.652 C 398.888 323.919, 363.858 348.892, 350.801 360.915 C 346.167 365.183, 342.568 369.766, 339.121 375.791 C 326.559 397.747, 313.173 433.937, 301.869 476.500 C 288.335 527.455, 279.901 553.296, 271.072 570.857 C 268.767 575.441, 267.262 578.956, 267.728 578.668 C 269.608 577.506, 280.306 561.712, 286.387 551.121 C 294.635 536.754, 303.036 517.623, 316.381 482.817 C 334.571 435.372, 342.699 417.732, 354.306 400.501 C 366.564 382.305, 391.340 360.789, 418.971 344.344 C 432.912 336.047, 464.916 319.583, 465.660 320.326 C 465.922 320.589, 464.513 322.931, 462.527 325.532 C 456.885 332.924, 455.668 336.497, 455.723 345.500 C 455.760 351.471, 456.435 355.383, 458.386 360.925 C 461.124 368.703, 461.609 373.308, 460.098 377.185 C 459.601 378.458, 455.740 383.304, 451.518 387.953 C 443.343 396.954, 441.665 399.533, 440.519 404.850 C 439.839 408.008, 439.928 408.158, 442.093 407.471 C 443.355 407.070, 449.363 406.779, 455.444 406.824 C 473.913 406.960, 492.853 413.211, 513.500 425.986 C 525.802 433.598, 530.437 435.963, 533.084 435.982 C 534.506 435.992, 542.991 433.479, 551.941 430.398 C 584.349 419.241, 587.293 419.454, 627.531 435.846 C 650.694 445.283, 655.458 446.345, 675 446.429 C 693.950 446.511, 698.924 445.624, 731.143 436.428 C 754.165 429.857, 764.966 427.383, 774.750 426.440 L 782 425.742 782 421.502 C 782 419.170, 781.310 413.266, 780.468 408.381 C 778.857 399.047, 771.741 370.440, 769.866 365.765 C 768.804 363.114, 757.229 353.938, 746.468 347.215 C 737.481 341.600, 726.867 337.361, 707.117 331.498 L 687.734 325.744 671.617 326.422 C 653.660 327.177, 646.398 326.299, 626.129 320.924 C 619.875 319.266, 614.584 318.082, 614.372 318.295 C 614.160 318.507, 615.366 320.585, 617.052 322.913 C 618.738 325.241, 619.979 327.530, 619.809 328 C 619.453 328.984, 606.820 320.571, 582.500 303.158 C 573.150 296.463, 562.763 289.614, 559.417 287.938 C 552.669 284.557, 545.205 283.540, 538.075 285.030 M 532.128 303.963 C 524.435 306.162, 512.495 312.091, 507.873 316.008 L 504.500 318.866 515.408 318.273 L 526.316 317.681 523.298 322.090 C 517.800 330.126, 516.666 333.160, 516.581 340.067 C 516.520 345.043, 517.086 347.890, 518.921 351.817 C 520.252 354.668, 521.687 357, 522.110 357 C 522.532 357, 523.196 354.875, 523.586 352.278 L 524.294 347.557 525.897 350.028 C 529.676 355.855, 535.680 361.210, 541.830 364.237 C 547.522 367.039, 549.442 367.474, 556.128 367.474 C 562.192 367.474, 563.629 367.742, 562.815 368.723 C 560.798 371.153, 548.079 376.802, 543.073 377.490 C 537.315 378.282, 536.523 379.455, 541.125 380.375 C 546.308 381.412, 554.134 381.057, 560.812 379.482 C 570.819 377.123, 578.707 372.628, 587.006 364.554 L 594.511 357.252 601.521 356.548 C 613.982 355.297, 637.896 358.330, 653 363.077 C 662.066 365.927, 676.473 373.073, 682.931 377.922 C 685.917 380.165, 688.743 382, 689.210 382 C 691.136 382, 685.055 373.187, 678.905 367.065 C 671.362 359.557, 664.981 355.491, 651.873 349.839 C 643.217 346.108, 636.276 344.158, 613 338.920 C 599.258 335.828, 589.514 330.753, 571.894 317.512 C 563.427 311.150, 554.670 305.057, 552.434 303.972 C 547.394 301.527, 540.664 301.524, 532.128 303.963 M 550.016 334.707 C 547.434 337.989, 547.979 341.277, 551.764 345.256 C 555.976 349.684, 564.259 351.167, 572.305 348.932 L 576.109 347.876 568.919 341.188 C 564.965 337.510, 560.778 333.953, 559.615 333.285 C 556.002 331.210, 552.340 331.752, 550.016 334.707 M 731.510 358.369 C 730.072 359.421, 729.812 360.564, 730.258 363.886 C 731.110 370.241, 733.134 372.409, 742.399 376.894 C 748.714 379.951, 751.998 382.288, 755.197 386.002 C 757.564 388.751, 759.809 390.999, 760.186 391 C 760.984 391, 757.436 377.705, 755.810 374.600 C 753.429 370.052, 748.811 365.118, 743.777 361.743 C 737.486 357.524, 733.983 356.561, 731.510 358.369 M 469.500 426.563 C 483.385 436.973, 490.839 444.971, 503.462 463 C 513.364 477.144, 517.116 481.425, 520.881 482.873 C 522.322 483.427, 532.050 484.088, 542.500 484.342 C 552.950 484.596, 562.584 485.144, 563.908 485.560 C 566.104 486.249, 566.249 486.104, 565.561 483.908 C 565.146 482.584, 564.574 477.403, 564.290 472.394 C 563.723 462.385, 565.136 455.612, 569.649 446.706 L 572.122 441.827 569.811 442.534 C 568.540 442.923, 561.451 445.468, 554.059 448.190 C 546.666 450.912, 538.478 453.393, 535.863 453.703 C 529.272 454.483, 523.035 452.225, 510.667 444.580 C 496.483 435.813, 483.240 429.213, 475.237 426.925 C 467.243 424.639, 466.905 424.617, 469.500 426.563 M 427.041 474.605 C 426.964 482.310, 429.087 504.485, 430.621 512 C 433.327 525.255, 438.090 537.967, 443.229 545.651 C 454.692 562.790, 471.279 572.941, 495.250 577.488 C 507.469 579.806, 553.916 579.291, 552.410 576.854 C 552.120 576.384, 550.794 576, 549.464 576 C 544.968 576, 512.569 569.129, 502.500 566.040 C 489.957 562.193, 476.081 555.552, 469.258 550.131 C 454.035 538.036, 441.376 516.089, 431.555 484.766 C 427.901 473.112, 427.074 471.251, 427.041 474.605"
+        fillRule="evenodd"
+      />
+    </svg>
+  );
+}
+
+// ─── SVG noise overlay (paper texture) ──────────────────────────────────────
+
+const INSTALL_CMD = "curl -fsSL https://trx.pidev.tech/install.sh | sh";
+
+const EASE = [0.16, 1, 0.3, 1] as const;
+
+// ─── Icons ───────────────────────────────────────────────────────────────────
+function CheckIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+function CopyIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="9" y="9" width="13" height="13" rx="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  );
+}
+
+// ─── Component ───────────────────────────────────────────────────────────────
+export function TrxHeroRedesign() {
+  const [copied, setCopied] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reducedMotion = useReducedMotion();
+
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+
+  const handleCopy = async () => {
+    if (timer.current) clearTimeout(timer.current);
+    try {
+      await navigator.clipboard.writeText(INSTALL_CMD);
+      setCopied(true);
+      timer.current = setTimeout(() => setCopied(false), 1800);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        position: "relative",
+        width: "100%",
+        minHeight: "100svh",
+        background: "transparent",
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      {/* ── GitHub icon — top right ── */}
+      <motion.a
+        href="https://github.com/pie-314/trx"
+        target="_blank"
+        rel="noopener noreferrer"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4, delay: 0.5, ease: "easeOut" }}
+        whileTap={{ scale: 0.95 }}
+        style={{
+          position: "absolute",
+          top: 20,
+          right: 24,
+          zIndex: 10,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: 40,
+          height: 40,
+          borderRadius: "50%",
+          background: "#1c1c1c",
+          boxShadow: "0 0 0 1px rgba(255,255,255,0.1), inset 0 1px 0 0 rgba(255,255,255,0.06)",
+          color: "#D4D4D4",
+          transition: "background 0.15s ease, box-shadow 0.15s ease",
+          textDecoration: "none",
+        }}
+        aria-label="GitHub repository"
+      >
+        <SiGithub size={18} />
+      </motion.a>
+
+
+      {/* ── Main content ── */}
+      <div
+        style={{
+          position: "relative",
+          zIndex: 1,
+          width: "100%",
+          maxWidth: 880,
+          padding: "64px 24px 80px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          textAlign: "center",
+        }}
+      >
+        {/* Logo block: dino + wordmark + pill */}
+        <motion.div
+          initial={{ opacity: 0, transform: reducedMotion ? "translateY(0)" : "translateY(-10px)" }}
+          animate={{ opacity: 1, transform: "translateY(0)" }}
+          transition={{ duration: 0.55, ease: EASE }}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 14,
+            marginBottom: 32,
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 20 }}>
+            <div style={{ color: "#ffffff", filter: "drop-shadow(0 2px 10px rgba(0,0,0,0.5)) drop-shadow(0 0 25px rgba(255,255,255,0.15))" }}>
+              <TrxDinoLogo size={90} />
+            </div>
+
+            <div
+              style={{
+                fontFamily: "var(--font-geist-sans)",
+                fontSize: "clamp(60px, 10vw, 96px)",
+                fontWeight: 800,
+                letterSpacing: "-0.055em",
+                lineHeight: 1,
+                background: "linear-gradient(to bottom, #ffffff 20%, #a3a3a3 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.6)) drop-shadow(0 0 30px rgba(139,127,247,0.25))",
+                userSelect: "none",
+              }}
+            >
+              trx
+            </div>
+          </div>
+
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              padding: "5px 14px",
+              borderRadius: 999,
+              background: "#252525",
+              boxShadow: "0 0 0 1px rgba(255,255,255,0.07)",
+              fontFamily: "var(--font-geist-sans)",
+              fontSize: 12,
+              fontWeight: 500,
+              color: "#888",
+              letterSpacing: "-0.01em",
+            }}
+          >
+            Fast. Keyboard-driven. Cross-platform.
+          </div>
+        </motion.div>
+
+        {/* Headline */}
+        <motion.h1
+          initial={{ opacity: 0, transform: reducedMotion ? "translateY(0)" : "translateY(16px)" }}
+          animate={{ opacity: 1, transform: "translateY(0)" }}
+          transition={{ duration: 0.55, ease: EASE, delay: 0.07 }}
+          style={{
+            fontFamily: "var(--font-geist-sans)",
+            fontSize: "clamp(36px, 6vw, 58px)",
+            fontWeight: 700,
+            letterSpacing: "-0.045em",
+            lineHeight: 1.1,
+            margin: "0 0 44px",
+            padding: 0,
+          }}
+        >
+          <span style={{ color: "#F5F5F5", display: "block" }}>The package manager</span>
+          <span style={{ color: "#888", display: "block" }}>for the terminal generation.</span>
+        </motion.h1>
+
+        {/* Command box */}
+        <motion.div
+          initial={{ opacity: 0, transform: reducedMotion ? "translateY(0)" : "translateY(20px)" }}
+          animate={{ opacity: 1, transform: "translateY(0)" }}
+          transition={{ duration: 0.6, ease: EASE, delay: 0.14 }}
+          style={{ width: "100%", maxWidth: 580, marginBottom: 52 }}
+        >
+          {/* Animated gradient border wrapper */}
+          <div className="cmd-border-wrap">
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              background: "#101010",
+              borderRadius: 14,
+              padding: "13px 13px 13px 22px",
+              gap: 12,
+              boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+            }}
+          >
+            <code
+              style={{
+                flex: 1,
+                fontFamily: "var(--font-geist-mono)",
+                fontSize: "13.5px",
+                color: "#DCDCDC",
+                letterSpacing: "-0.01em",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                userSelect: "all",
+              }}
+            >
+              <span style={{ color: "#666", marginRight: 8 }}>$</span>
+              {INSTALL_CMD}
+            </code>
+
+            <button
+              onClick={handleCopy}
+              title={copied ? "Copied!" : "Copy to clipboard"}
+              style={{
+                flexShrink: 0,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "7px 13px",
+                borderRadius: 8,
+                border: "1px solid rgba(255,255,255,0.07)",
+                background: copied ? "rgba(34, 70, 48, 0.9)" : "rgba(38, 38, 38, 0.95)",
+                color: copied ? "#5eea8a" : "#909090",
+                fontSize: 12,
+                fontWeight: 500,
+                fontFamily: "var(--font-geist-sans)",
+                letterSpacing: "-0.01em",
+                cursor: "pointer",
+                transition: "background 0.18s ease, color 0.18s ease",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {copied ? <CheckIcon /> : <CopyIcon />}
+              {copied ? "Copied!" : "Copy"}
+            </button>
+          </div>
+          </div>{/* end cmd-border-wrap */}
+        </motion.div>
+
+        {/* Bottom cluster */}
+        <motion.div
+          initial={{ opacity: 0, transform: reducedMotion ? "translateY(0)" : "translateY(24px)" }}
+          animate={{ opacity: 1, transform: "translateY(0)" }}
+          transition={{ duration: 0.65, ease: EASE, delay: 0.22 }}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 18,
+          }}
+        >
+          {/* Feature dots row */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              fontFamily: "var(--font-geist-sans)",
+              fontSize: 13,
+              fontWeight: 500,
+              color: "#888",
+              letterSpacing: "-0.01em",
+            }}
+          >
+            <span>Fast</span>
+            <span style={{ color: "#444", fontSize: 8 }}>●</span>
+            <span>Keyboard-driven</span>
+            <span style={{ color: "#444", fontSize: 8 }}>●</span>
+            <span>Cross-platform</span>
+          </div>
+
+          {/* Platform compatibility card */}
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 14,
+              padding: "10px 18px",
+              background: "#1c1c1c",
+              borderRadius: 12,
+              boxShadow: "0 0 0 1px rgba(255,255,255,0.07), inset 0 1px 0 0 rgba(255,255,255,0.05)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10, color: "#888" }}>
+              <SiApple size={17} />
+              <SiArchlinux size={17} />
+              <SiUbuntu size={17} />
+            </div>
+            <div
+              style={{
+                width: 1,
+                height: 18,
+                background: "rgba(255,255,255,0.12)",
+                flexShrink: 0,
+              }}
+            />
+            <span
+              style={{
+                fontFamily: "var(--font-geist-sans)",
+                fontSize: 13,
+                fontWeight: 500,
+                color: "#a3a3a3",
+                letterSpacing: "-0.01em",
+              }}
+            >
+              Works everywhere you work
+            </span>
+          </div>
+
+          {/* CTA buttons */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4 }}>
+            {/* Primary */}
+            <Link
+              href="#install"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                padding: "10px 22px",
+                borderRadius: 999,
+                background: "linear-gradient(to bottom, #8B7FF7, #6B5EE0)",
+                border: "1px solid rgba(107,94,224,0.5)",
+                color: "#FFFFFF",
+                fontSize: 14,
+                fontWeight: 600,
+                fontFamily: "var(--font-geist-sans)",
+                textDecoration: "none",
+                letterSpacing: "-0.01em",
+                boxShadow: "inset 0 1px 0 0 rgba(255,255,255,0.2), 0 2px 8px rgba(107,94,224,0.35)",
+                transition: "background 0.15s ease",
+              }}
+            >
+              Get started →
+            </Link>
+            {/* Secondary */}
+            <motion.div whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 500, damping: 20 }}>
+              <Link
+                href="#features"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  padding: "10px 22px",
+                  borderRadius: 999,
+                  background: "#FFFFFF",
+                  border: "none",
+                  color: "#757575",
+                  fontSize: 14,
+                  fontWeight: 500,
+                  fontFamily: "var(--font-geist-sans)",
+                  textDecoration: "none",
+                  letterSpacing: "-0.01em",
+                  boxShadow: "0 0 0 1px rgba(0,0,0,0.08), 0 1px 2px -1px rgba(0,0,0,0.06), 0 2px 4px 0 rgba(0,0,0,0.04)",
+                  transition: "background 0.15s ease",
+                }}
+              >
+                Explore features
+              </Link>
+            </motion.div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* ── Scroll chevron ── */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, delay: 1.1, ease: "easeOut" }}
+        style={{
+          position: "absolute",
+          bottom: 28,
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 1,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 3,
+        }}
+      >
+        <motion.svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="rgba(255,255,255,0.25)"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          animate={{ y: [0, 4, 0] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </motion.svg>
+      </motion.div>
+
+      <style>{`
+        @property --cmd-angle {
+          syntax: '<angle>';
+          inherits: false;
+          initial-value: 0deg;
+        }
+
+        @keyframes cmd-border-spin {
+          to { --cmd-angle: 360deg; }
+        }
+
+        .cmd-border-wrap {
+          border-radius: 20px;
+          padding: 6px;
+          background: conic-gradient(
+            from var(--cmd-angle),
+            rgba(139,127,247,0.85) 0deg,
+            transparent 55deg,
+            transparent 125deg,
+            rgba(255,255,255,0.25) 180deg,
+            transparent 235deg,
+            transparent 305deg,
+            rgba(139,127,247,0.85) 360deg
+          );
+          animation: cmd-border-spin 4s linear infinite;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .cmd-border-wrap {
+            animation: none;
+            background: conic-gradient(
+              from 45deg,
+              rgba(139,127,247,0.6),
+              transparent,
+              rgba(255,255,255,0.15),
+              transparent,
+              rgba(139,127,247,0.6)
+            );
+          }
+        }
+      `}</style>
+    </div>
+  );
+}

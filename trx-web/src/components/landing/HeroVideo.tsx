@@ -148,7 +148,7 @@ function Placeholder() {
               letterSpacing: "0.04em",
             }}
           >
-            // video coming soon
+            {"// video coming soon"}
           </span>
         </div>
 

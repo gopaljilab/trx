@@ -11,7 +11,7 @@ export function Label({ children }: { children: React.ReactNode }) {
       textTransform: "uppercase",
       fontWeight: "500",
     }}>
-      <span style={{ opacity: 0.45 }}>// </span>{children}
+      <span style={{ opacity: 0.45 }}>{"// "}</span>{children}
     </p>
   );
 }
