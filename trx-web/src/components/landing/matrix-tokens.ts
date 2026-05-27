@@ -1,5 +1,5 @@
 /**
- * Matrix theme overlay tokens — JS mirror of matrix-theme.css custom properties.
+ * Matrix theme overlay tokens - JS mirror of matrix-theme.css custom properties.
  * Import alongside the base C/S tokens. These extend, never replace, them.
  *
  * Usage:
@@ -12,15 +12,15 @@ export const MX = {
   // Only `emeraldText` is safe for typographic content (WCAG AA).
   // The deeper values (#1F4A3A, #2D6B54) are decorative only.
 
-  /** Darkest emerald — tight fills, almost invisible on black */
+  /** Darkest emerald - tight fills, almost invisible on black */
   emeraldDeep:   "#162E25",
-  /** Primary accent fill — not for text */
+  /** Primary accent fill - not for text */
   emerald:       "#1F4A3A",
-  /** Mid emerald — 1px borders, subtle separators */
+  /** Mid emerald - 1px borders, subtle separators */
   emeraldMid:    "#2D6B54",
-  /** Bright emerald — hover borders, halos */
+  /** Bright emerald - hover borders, halos */
   emeraldBright: "#3D8F6E",
-  /** Text-safe emerald — WCAG AA: ~7.9:1 on #0b0b0b, ~7.0:1 on #111111 */
+  /** Text-safe emerald - WCAG AA: ~7.9:1 on #0b0b0b, ~7.0:1 on #111111 */
   emeraldText:   "#52B788",
 
   // ── rgba fills ──────────────────────────────────────────────

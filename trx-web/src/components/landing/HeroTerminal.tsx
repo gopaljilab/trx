@@ -79,7 +79,7 @@ export function HeroTerminal() {
         <div className="flex flex-1 justify-center">
           <span style={{ ...mono, color: C.text3, fontSize: "12px" }}>trx-cli</span>
         </div>
-        {/* Tabs — hidden on mobile */}
+        {/* Tabs - hidden on mobile */}
         <div className="hidden gap-0.5 sm:flex">
           {["Search", "Installed", "Updates"].map((tab, i) => (
             <span key={tab} style={{
@@ -100,7 +100,7 @@ export function HeroTerminal() {
       */}
       <div className="flex min-h-[360px] bg-[#101010] sm:min-h-[420px]">
 
-        {/* Sidebar — sm+ only */}
+        {/* Sidebar - sm+ only */}
         <div className="hidden w-[160px] shrink-0 flex-col border-r border-white/[0.05] bg-[#0e0e0e] py-3 shadow-[inset_-6px_0_12px_-8px_rgba(0,0,0,0.45)] sm:flex sm:w-[180px]">
           {[
             { label: "Search",    active: true },
@@ -138,13 +138,13 @@ export function HeroTerminal() {
               background: MX.emeraldText, borderRadius: "1px",
               opacity: cursorVis ? 1 : 0, transition: "opacity 0.05s",
             }} />
-            {/* Results count — hidden on xs */}
+            {/* Results count - hidden on xs */}
             <span className="ml-auto hidden sm:inline" style={{ ...mono, fontSize: "11px", color: C.text3 }}>
               {demo.packages.length} results
             </span>
           </div>
 
-          {/* Column headers — hidden on mobile, show version+status only on sm+ */}
+          {/* Column headers - hidden on mobile, show version+status only on sm+ */}
           <div className="hidden border-b border-white/[0.04] px-3.5 py-1 sm:flex">
             <span style={{ ...mono, fontSize: "10px", color: C.text3, flex: 1, textTransform: "uppercase", letterSpacing: "0.08em" }}>Package</span>
             <span style={{ ...mono, fontSize: "10px", color: C.text3, width: "72px", textTransform: "uppercase", letterSpacing: "0.08em" }}>Version</span>
@@ -164,14 +164,14 @@ export function HeroTerminal() {
               <span style={{ ...mono, fontSize: "13px", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: i === selectedRow ? C.text : C.text2, fontWeight: i === selectedRow ? "500" : "400" }}>
                 {pkg.name}
               </span>
-              {/* Version + status — hidden on xs */}
+              {/* Version + status - hidden on xs */}
               <span className="hidden sm:inline" style={{ ...mono, fontSize: "12px", color: C.text3, width: "72px", flexShrink: 0 }}>{pkg.version}</span>
               <span className="hidden sm:inline" style={{ ...mono, fontSize: "11.5px", color: statusCol(pkg.status), width: "72px", flexShrink: 0 }}>{pkg.status}</span>
             </div>
           ))}
         </div>
 
-        {/* Detail panel — lg+ only */}
+        {/* Detail panel - lg+ only */}
         <div className="hidden w-[240px] shrink-0 flex-col gap-3.5 bg-[#101010] p-4 lg:flex lg:w-[260px]">
           <div>
             <div style={{ ...mono, fontSize: "14px", color: C.text, fontWeight: "600", marginBottom: "4px" }}>{selPkg.name}</div>
@@ -209,7 +209,7 @@ export function HeroTerminal() {
       {/* ── Status bar ── */}
       <div className="flex items-center gap-3 border-t border-white/[0.06] bg-gradient-to-b from-[#1c1c1c] to-[#161616] px-3 py-1 shadow-[0_-1px_0_#ffffff14_inset] sm:px-4" style={{ ...mono, fontSize: "11px" }}>
         <span style={{ color: C.text, fontWeight: "700", letterSpacing: "0.04em", flexShrink: 0 }}>NORMAL</span>
-        {/* Keybindings — hidden on mobile */}
+        {/* Keybindings - hidden on mobile */}
         <span className="hidden min-w-0 truncate sm:block" style={{ color: C.text3 }}>
           e:search · space:select · i:install · x:remove · U:upgrade · tab:switch
         </span>

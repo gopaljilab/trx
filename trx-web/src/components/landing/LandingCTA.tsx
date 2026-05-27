@@ -73,7 +73,7 @@ export function LandingCTA() {
             letterSpacing: "-0.01em",
           }}
         >
-          trx puts 50,000+ packages at your fingertips. Search, install, and manage — all from a keyboard-driven terminal interface.
+          trx puts 50,000+ packages at your fingertips. Search, install, and manage, all from a keyboard-driven terminal interface.
         </p>
 
         <Link

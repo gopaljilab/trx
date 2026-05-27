@@ -229,7 +229,7 @@ export function HeroVideo({ src, poster }: HeroVideoProps) {
 
   return (
     <div className={raisedCrispPanel("w-full select-none overflow-hidden")}>
-      {/* ── Title bar — identical to HeroTerminal ── */}
+      {/* ── Title bar - identical to HeroTerminal ── */}
       <div className="flex items-center gap-2 border-b border-white/[0.06] bg-gradient-to-b from-[#242424] to-[#1a1a1a] px-4 py-2.5 shadow-[0_1px_0_#ffffff28_inset]">
         <div className="flex gap-1.5">
           <div className="h-2.5 w-2.5 rounded-full bg-[#7a4040]" />
@@ -238,7 +238,7 @@ export function HeroVideo({ src, poster }: HeroVideoProps) {
         </div>
         <div className="flex flex-1 justify-center">
           <span style={{ ...mono, color: C.text3, fontSize: "12px" }}>
-            trx-cli — demo.mp4
+            trx-cli - demo.mp4
           </span>
         </div>
         <div style={{ width: "80px" }} /> {/* balance the traffic lights */}
@@ -292,7 +292,7 @@ export function HeroVideo({ src, poster }: HeroVideoProps) {
         <Placeholder />
       )}
 
-      {/* ── Controls bar — same height feel as HeroTerminal status bar ── */}
+      {/* ── Controls bar - same height feel as HeroTerminal status bar ── */}
       <div
         className="flex items-center gap-3 border-t border-white/[0.06] bg-gradient-to-b from-[#1c1c1c] to-[#161616] px-4 py-2 shadow-[0_-1px_0_#ffffff14_inset]"
         style={{ ...mono, fontSize: "11px" }}

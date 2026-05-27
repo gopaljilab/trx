@@ -294,7 +294,7 @@ function MultiManagerCard() {
         One interface for Homebrew, Pacman, AUR via yay, and APT. Auto-detected at launch; no config required.
       </CardDesc>
 
-      {/* Platform chips — horizontal row */}
+      {/* Platform chips - horizontal row */}
       <div style={{ display: "flex", gap: 10, marginTop: "auto", paddingTop: 24, flexWrap: "wrap" }}>
         {PLATFORMS.map((p) => (
           <div
@@ -476,7 +476,7 @@ function ZeroRuntimeCard() {
         </div>
       </div>
 
-      {/* Bottom tags — full width */}
+      {/* Bottom tags - full width */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: "auto" }}>
         {["Pure Rust", "No async runtime", "OS threads", "mpsc channels"].map((tag) => (
           <span
@@ -753,7 +753,7 @@ function FlowConnector({
         viewBox="0 0 60 96"
         fill="none"
       >
-        {/* 1 — Ghost track */}
+        {/* 1 - Ghost track */}
         <motion.path
           d={path}
           stroke={accent} strokeOpacity={0.12} strokeWidth={1.5}
@@ -763,7 +763,7 @@ function FlowConnector({
           transition={{ duration: 0.7, delay: delay + 0.05, ease: "easeInOut" }}
         />
 
-        {/* 2 — Flowing dashes */}
+        {/* 2 - Flowing dashes */}
         <motion.path
           d={path}
           stroke={accent} strokeOpacity={0.6} strokeWidth={1.5}
@@ -776,7 +776,7 @@ function FlowConnector({
           }}
         />
 
-        {/* 3 — Halo pulse */}
+        {/* 3 - Halo pulse */}
         <motion.circle
           cx={ex} cy={8} r={11} fill={accent}
           initial={{ opacity: 0, scale: 0.6 }}
@@ -784,7 +784,7 @@ function FlowConnector({
           transition={{ duration: 2.6, delay, repeat: Infinity, ease: "easeInOut" }}
         />
 
-        {/* 4 — Solid dot */}
+        {/* 4 - Solid dot */}
         <motion.circle
           cx={ex} cy={8} r={4.5} fill={accent}
           initial={{ scale: 0, opacity: 0 }}
@@ -792,7 +792,7 @@ function FlowConnector({
           transition={{ duration: 0.28, delay, ease: EASE }}
         />
 
-        {/* 5 — Arrowhead */}
+        {/* 5 - Arrowhead */}
         <motion.path
           d={arrow}
           stroke={accent} strokeOpacity={0.65} strokeWidth={1.5}
@@ -825,7 +825,7 @@ export default function Home() {
 
       {/* ── INSTALL ──────────────────────────────────────────────────────────── */}
       <Section id="install">
-        {/* Heading — full width, top of section, like other sections */}
+        {/* Heading - full width, top of section, like other sections */}
         <FadeUp style={{ marginBottom: 60 }}>
           <SectionLabel>Get started</SectionLabel>
           <SectionHeading sub="Up and running in under a minute. Copy any command to get started.">
@@ -834,7 +834,7 @@ export default function Home() {
 
         </FadeUp>
 
-        {/* Cards column — centered, connectors on outer sides */}
+        {/* Cards column - centered, connectors on outer sides */}
         <div style={{ maxWidth: 740, margin: "0 auto", position: "relative" }}>
           <FadeUp delay={0}><StepCard {...STEPS[0]} /></FadeUp>
 

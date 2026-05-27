@@ -8,7 +8,7 @@ function rng(min: number, max: number) {
 function sign() { return Math.random() > 0.5 ? 1 : -1; }
 
 /* ── Fixed layer counts ─────────────────────────────────── */
-// Always render the same DOM nodes — CSS transitions do the work.
+// Always render the same DOM nodes - CSS transitions do the work.
 
 const N_TEXT = 5;
 const N_BAR  = 4;
@@ -65,7 +65,7 @@ const IDLE: GlitchState = {
 function nextFrame(): GlitchState {
   const text: TextLayer[] = [];
 
-  // 0 — Primary emerald slice
+  // 0 - Primary emerald slice
   const eTop = rng(0, 45);
   text.push({
     color: "#52B788",
@@ -77,7 +77,7 @@ function nextFrame(): GlitchState {
     opacity: rng(0.85, 1),
   });
 
-  // 1 — Crimson slice, opposite direction
+  // 1 - Crimson slice, opposite direction
   const cTop = rng(0, 55);
   text.push({
     color: "#ff4040",
@@ -89,7 +89,7 @@ function nextFrame(): GlitchState {
     opacity: rng(0.60, 0.92),
   });
 
-  // 2 — Secondary emerald (75 % active)
+  // 2 - Secondary emerald (75 % active)
   const e2Top = rng(0, 60);
   text.push({
     color: "#2D6B54",
@@ -101,7 +101,7 @@ function nextFrame(): GlitchState {
     opacity: Math.random() > 0.25 ? rng(0.55, 0.88) : 0,
   });
 
-  // 3 — White overexposure (50 % active)
+  // 3 - White overexposure (50 % active)
   const wTop = rng(0, 65);
   text.push({
     color: "#ffffff",
@@ -113,7 +113,7 @@ function nextFrame(): GlitchState {
     opacity: Math.random() > 0.50 ? rng(0.45, 0.85) : 0,
   });
 
-  // 4 — Extra crimson or white burst (45 % active)
+  // 4 - Extra crimson or white burst (45 % active)
   const c2Top = rng(10, 70);
   text.push({
     color: Math.random() > 0.5 ? "#cc2222" : "#ffffff",
@@ -125,7 +125,7 @@ function nextFrame(): GlitchState {
     opacity: Math.random() > 0.55 ? rng(0.35, 0.70) : 0,
   });
 
-  // Bars — first 2 are emerald scan lines, last 2 are black dropouts
+  // Bars - first 2 are emerald scan lines, last 2 are black dropouts
   const bars: BarLayer[] = Array.from({ length: N_BAR }, (_, i) => {
     const isScan   = i < 2;
     const active   = Math.random() > (isScan ? 0.30 : 0.50);
@@ -170,7 +170,7 @@ export function GlitchHeading({
       timerRef.current = setTimeout(() => {
         const burstMs = rng(500, 950);
         let elapsed   = 0;
-        const TICK    = 40; // 25 fps — lets CSS transitions breathe
+        const TICK    = 40; // 25 fps - lets CSS transitions breathe
 
         intervalRef.current = setInterval(() => {
           elapsed += TICK;

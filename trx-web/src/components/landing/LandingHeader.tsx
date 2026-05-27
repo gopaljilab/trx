@@ -57,7 +57,7 @@ export function LandingHeader() {
 
           {/* Right buttons */}
           <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-2.5">
-            {/* GitHub — ghost outline */}
+            {/* GitHub - ghost outline */}
             <motion.div
               whileTap={{ scale: 0.97 }}
               transition={{ duration: 0.12, ease: "easeOut" }}
@@ -90,7 +90,7 @@ export function LandingHeader() {
               </a>
             </motion.div>
 
-            {/* Install — dark pill */}
+            {/* Install - dark pill */}
             <motion.div
               whileTap={{ scale: 0.97 }}
               transition={{ duration: 0.12, ease: "easeOut" }}

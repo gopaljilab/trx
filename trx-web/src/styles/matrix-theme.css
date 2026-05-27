@@ -26,19 +26,19 @@
     --mx-emerald-bright: #3D8F6E;
     --mx-emerald-text:   #52B788;
 
-    /* rgba fills — use for backgrounds, never body text */
+    /* rgba fills - use for backgrounds, never body text */
     --mx-emerald-subtle: rgba(31, 74, 58, 0.10);
     --mx-emerald-glow:   rgba(31, 74, 58, 0.20);
 
-    /* Desaturated teal — secondary accent */
+    /* Desaturated teal - secondary accent */
     --mx-teal:           #1A3A3F;
     --mx-teal-border:    rgba(26, 58, 63, 0.35);
 
-    /* Cool gunmetal — alternate surface accent */
+    /* Cool gunmetal - alternate surface accent */
     --mx-gunmetal:       #1C2428;
 
     /*
-     * 1px borders — never fills.
+     * 1px borders - never fills.
      * "border" is subtle at rest; "border-mid" on hover;
      * "border-bright" on active / focus.
      */
@@ -46,7 +46,7 @@
     --mx-border-mid:     rgba(61, 143, 110, 0.38);
     --mx-border-bright:  rgba(82, 183, 136, 0.55);
 
-    /* Emerald focus glow — use as box-shadow on :focus-visible */
+    /* Emerald focus glow - use as box-shadow on :focus-visible */
     --mx-focus-shadow:
       0 0 0 2px rgba(31, 74, 58, 0.55),
       0 0 0 4px rgba(31, 74, 58, 0.22),
@@ -68,7 +68,7 @@
 /* ── Grid Overlay ──────────────────────────────────────────── */
 /*
  * Apply to a <section> or wrapper to add a faint lattice behind
- * content. Works best on hero or features sections — not every
+ * content. Works best on hero or features sections - not every
  * section, or it loses impact.
  *
  * Usage: className="mx-grid"
@@ -85,7 +85,7 @@
 /*
  * Horizontal scanline texture rendered as a ::before overlay.
  * Uses isolation so child z-indices work correctly.
- * The ::before sits at z-index: 2 — content in the container
+ * The ::before sits at z-index: 2 - content in the container
  * should be relatively positioned with z-index: 1+ to appear
  * over the scanlines.
  *
@@ -118,7 +118,7 @@
 /* ── 1px Accent Border ─────────────────────────────────────── */
 /*
  * Thin emerald border, dims at rest, brightens on hover.
- * Layer over existing RAISED_BORDER (white/5) — they coexist.
+ * Layer over existing RAISED_BORDER (white/5) - they coexist.
  *
  * Usage: className="mx-border"
  */
@@ -133,7 +133,7 @@
 /* ── Ambient Emerald Glow ──────────────────────────────────── */
 /*
  * Soft outer glow. Use on 1–2 hero elements or the primary CTA
- * section — overusing kills the effect.
+ * section - overusing kills the effect.
  *
  * Usage: className="mx-glow"
  */
@@ -170,7 +170,7 @@
 /*
  * Monospace uppercase label with a terminal prefix.
  * Three variants: // (section), > (status), $ (command).
- * All pass WCAG AA — #52B788 on #0b0b0b is ~7.9:1.
+ * All pass WCAG AA - #52B788 on #0b0b0b is ~7.9:1.
  *
  * Usage:
  *   <span className="mx-label">Features</span>        → // FEATURES
@@ -206,7 +206,7 @@
 /* ── Cursor Blink ───────────────────────────────────────────── */
 /*
  * Appends a blinking block cursor after element text.
- * Interval is 530ms — intentionally matches HeroTerminal.tsx.
+ * Interval is 530ms - intentionally matches HeroTerminal.tsx.
  *
  * Usage: className="mx-cursor"
  *   e.g. on an h2 or a status line span
@@ -268,14 +268,14 @@
 /*
  * Periodic visual glitch: micro-translate + skewX + chromatic
  * aberration via text-shadow. Fires ~every 9s.
- * Works on any element — no data-text attribute needed.
+ * Works on any element - no data-text attribute needed.
  * Does not override inline color styles (uses text-shadow instead).
  *
  * Usage: className="mx-glitch"
  * Combine with mx-reveal: className="mx-reveal mx-glitch"
  */
 @keyframes mx-heading-glitch {
-  /* Resting state — most of the cycle is clean */
+  /* Resting state - most of the cycle is clean */
   0%, 36%, 100% {
     transform: none;
     text-shadow: none;
@@ -400,7 +400,7 @@
 /* ── Accent Text ────────────────────────────────────────────── */
 /*
  * Emerald-tinted monospace text. For numeric callouts, version
- * strings, or status values — not for body copy.
+ * strings, or status values - not for body copy.
  *
  * Usage: className="mx-accent"
  */

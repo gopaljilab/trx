@@ -83,7 +83,7 @@ export function TrxHeroRedesign() {
         justifyContent: "center",
       }}
     >
-      {/* ── GitHub icon — top right ── */}
+      {/* ── GitHub icon - top right ── */}
       <motion.a
         href="https://github.com/pie-314/trx"
         target="_blank"
