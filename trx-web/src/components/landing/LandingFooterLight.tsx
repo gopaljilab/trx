@@ -13,9 +13,9 @@ const FOOTER_LINKS = [
   {
     heading: "Resources",
     links: [
+      { label: "Docs",        href: "https://pie-314.github.io/trx/",          external: true },
       { label: "GitHub",      href: "https://github.com/pie-314/trx",          external: true },
       { label: "Issues",      href: "https://github.com/pie-314/trx/issues",   external: true },
-      { label: "Releases",    href: "https://github.com/pie-314/trx/releases", external: true },
       { label: "Discussions", href: "https://github.com/pie-314/trx/discussions", external: true },
     ],
   },
@@ -126,9 +126,10 @@ export function LandingFooterLight() {
           style={{
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
+            justifyContent: "center",
             gap: 16,
             flexWrap: "wrap",
+            width: "100%",
           }}
         >
           <span
@@ -137,33 +138,11 @@ export function LandingFooterLight() {
               fontSize: 13,
               color: "#777",
               letterSpacing: "-0.01em",
+              textAlign: "center",
             }}
           >
             © 2026 trx. MIT License
           </span>
-          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-            {[
-              { label: "Terms of Use",   href: "https://github.com/pie-314/trx/blob/main/LICENSE" },
-              { label: "Privacy Policy", href: "https://github.com/pie-314/trx" },
-            ].map((l) => (
-              <a
-                key={l.label}
-                href={l.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  fontFamily: "var(--font-geist-sans)",
-                  fontSize: 13,
-                  color: "#888",
-                  textDecoration: "underline",
-                  textDecorationColor: "rgba(255,255,255,0.15)",
-                  letterSpacing: "-0.01em",
-                }}
-              >
-                {l.label}
-              </a>
-            ))}
-          </div>
         </div>
       </div>
 

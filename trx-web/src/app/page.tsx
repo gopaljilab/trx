@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from "react";
 import { motion, useInView, useReducedMotion } from "motion/react";
-import { SiApple, SiArchlinux, SiUbuntu } from "react-icons/si"; // used in bento MultiManagerVisual
+import { SiApple, SiArchlinux, SiDebian } from "react-icons/si"; // used in bento MultiManagerVisual
 import { LuSearch, LuBox, LuLayers, LuZap } from "react-icons/lu";
 import { LuCheck, LuCopy } from "react-icons/lu";
 import { TrxHeroRedesign } from "@/components/landing/TrxHeroRedesign";
@@ -279,8 +279,8 @@ function FuzzySearchCard() {
 // ─── Card 2: Multi-Manager ────────────────────────────────────────────────────
 const PLATFORMS = [
   { icon: <SiApple size={18} />,    name: "macOS",      sub: "Homebrew",    iconBg: "#F0EFEE", iconColor: "#333",     iconRing: "rgba(51,51,51,0.12)"    },
-  { icon: <SiArchlinux size={18} />,name: "Arch Linux",  sub: "Pacman + AUR",iconBg: "#EEF2FF", iconColor: "#4F46E5", iconRing: "rgba(79,70,229,0.15)"   },
-  { icon: <SiUbuntu size={18} />,   name: "Ubuntu",      sub: "APT",         iconBg: "#FFF3EE", iconColor: "#EA580C", iconRing: "rgba(234,88,12,0.15)"   },
+  { icon: <SiArchlinux size={18} />,name: "Arch Based OS",  sub: "Pacman + AUR",iconBg: "#EEF2FF", iconColor: "#4F46E5", iconRing: "rgba(79,70,229,0.15)"   },
+  { icon: <SiDebian size={18} />,   name: "Debian Based",   sub: "APT",         iconBg: "#FFF0F3", iconColor: "#D70751", iconRing: "rgba(215,7,81,0.15)"    },
 ];
 
 function MultiManagerCard() {
@@ -568,6 +568,8 @@ function StepCard({
     <div
       className="step-card"
       style={{
+        position: "relative",
+        zIndex: 2,
         display: "grid",
         gridTemplateColumns: "auto 1fr auto",
         alignItems: "center",
@@ -712,7 +714,7 @@ function StepCard({
   );
 }
 
-// ─── SVG flow connector (side-exit S-curve, flowing dashes) ──────────────────
+// ─── SVG flow connector (S-curve, centered below cards) ──────────────────────
 function FlowConnector({
   delay,
   accent = "#a5b4fc",
@@ -726,8 +728,8 @@ function FlowConnector({
   const inView = useInView(ref, { once: true, margin: "-20px" });
   const isRight = side === "right";
 
-  const ex = isRight ? 6 : 54;   // x that touches the card edge
-  const ax = isRight ? 54 : 6;   // x at the outward apex
+  const ex = isRight ? 6 : 54;
+  const ax = isRight ? 54 : 6;
   const path = `M${ex} 8 C${ex} 32,${ax} 32,${ax} 48 C${ax} 64,${ex} 64,${ex} 88`;
   const arrow = `M${ex - 4} 84 L${ex} 92 L${ex + 4} 84`;
 
@@ -735,13 +737,14 @@ function FlowConnector({
     <div
       ref={ref}
       aria-hidden
-      style={{ height: 48, position: "relative", overflow: "visible" }}
+      style={{ height: 96, position: "relative", overflow: "visible", zIndex: 1 }}
     >
       <svg
         style={{
           position: "absolute",
-          ...(isRight ? { left: "100%" } : { right: "100%" }),
-          top: -20,
+          left: "50%",
+          transform: "translateX(-50%)",
+          top: 0,
           overflow: "visible",
           pointerEvents: "none",
         }}
@@ -750,7 +753,7 @@ function FlowConnector({
         viewBox="0 0 60 96"
         fill="none"
       >
-        {/* 1 — Ghost track: draws in once, stays as subtle rail */}
+        {/* 1 — Ghost track */}
         <motion.path
           d={path}
           stroke={accent} strokeOpacity={0.12} strokeWidth={1.5}
@@ -760,35 +763,24 @@ function FlowConnector({
           transition={{ duration: 0.7, delay: delay + 0.05, ease: "easeInOut" }}
         />
 
-        {/* 2 — Flowing dashes: fade in then continuously march */}
+        {/* 2 — Flowing dashes */}
         <motion.path
           d={path}
           stroke={accent} strokeOpacity={0.6} strokeWidth={1.5}
           strokeDasharray="7 5" strokeLinecap="round" fill="none"
           initial={{ opacity: 0, strokeDashoffset: 0 }}
-          animate={inView ? {
-            opacity: 1,
-            strokeDashoffset: [0, -12],
-          } : { opacity: 0 }}
+          animate={inView ? { opacity: 1, strokeDashoffset: [0, -12] } : { opacity: 0 }}
           transition={{
             opacity: { duration: 0.3, delay: delay + 0.65 },
-            strokeDashoffset: {
-              duration: 1.8,
-              delay: delay + 0.65,
-              repeat: Infinity,
-              ease: "linear",
-            },
+            strokeDashoffset: { duration: 1.8, delay: delay + 0.65, repeat: Infinity, ease: "linear" },
           }}
         />
 
-        {/* 3 — Halo: pulses continuously */}
+        {/* 3 — Halo pulse */}
         <motion.circle
           cx={ex} cy={8} r={11} fill={accent}
           initial={{ opacity: 0, scale: 0.6 }}
-          animate={inView ? {
-            opacity: [0, 0.18, 0.08, 0.18, 0.08],
-            scale:   [0.6, 1,    1,    1,    1   ],
-          } : {}}
+          animate={inView ? { opacity: [0, 0.18, 0.08, 0.18, 0.08], scale: [0.6, 1, 1, 1, 1] } : {}}
           transition={{ duration: 2.6, delay, repeat: Infinity, ease: "easeInOut" }}
         />
 
@@ -800,7 +792,7 @@ function FlowConnector({
           transition={{ duration: 0.28, delay, ease: EASE }}
         />
 
-        {/* 5 — Arrowhead fades in after track is drawn */}
+        {/* 5 — Arrowhead */}
         <motion.path
           d={arrow}
           stroke={accent} strokeOpacity={0.65} strokeWidth={1.5}

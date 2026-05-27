@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
-import { SiApple, SiArchlinux, SiUbuntu, SiGithub } from "react-icons/si";
+import { SiApple, SiArchlinux, SiDebian, SiGithub } from "react-icons/si";
+import { LuArrowRight, LuArrowUpRight } from "react-icons/lu";
 import { DINO_PATH } from "./dino-path";
 
 // ─── T-Rex head silhouette logo (SVG, facing right) ─────────────────────────
@@ -142,10 +143,6 @@ export function TrxHeroRedesign() {
           }}
         >
           <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 20 }}>
-            <div style={{ color: "#ffffff", filter: "drop-shadow(0 2px 10px rgba(0,0,0,0.5)) drop-shadow(0 0 25px rgba(255,255,255,0.15))" }}>
-              <TrxDinoLogo size={90} />
-            </div>
-
             <div
               style={{
                 fontFamily: "var(--font-geist-sans)",
@@ -156,11 +153,15 @@ export function TrxHeroRedesign() {
                 background: "linear-gradient(to bottom, #ffffff 20%, #a3a3a3 100%)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
-                filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.6)) drop-shadow(0 0 30px rgba(139,127,247,0.25))",
+                filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.5))",
                 userSelect: "none",
               }}
             >
               trx
+            </div>
+
+            <div style={{ color: "#ffffff", filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.5))" }}>
+              <TrxDinoLogo size={90} />
             </div>
           </div>
 
@@ -190,16 +191,16 @@ export function TrxHeroRedesign() {
           transition={{ duration: 0.55, ease: EASE, delay: 0.07 }}
           style={{
             fontFamily: "var(--font-geist-sans)",
-            fontSize: "clamp(36px, 6vw, 58px)",
+            fontSize: "clamp(30px, 4.5vw, 50px)",
             fontWeight: 700,
-            letterSpacing: "-0.045em",
-            lineHeight: 1.1,
+            letterSpacing: "-0.04em",
+            lineHeight: 1.2,
             margin: "0 0 44px",
             padding: 0,
           }}
         >
-          <span style={{ color: "#F5F5F5", display: "block" }}>The package manager</span>
-          <span style={{ color: "#888", display: "block" }}>for the terminal generation.</span>
+          <span style={{ color: "#F5F5F5", display: "block" }}>Search, install, manage.</span>
+          <span style={{ color: "#F5F5F5", display: "block" }}>One TUI for all your packages.</span>
         </motion.h1>
 
         {/* Command box */}
@@ -315,7 +316,7 @@ export function TrxHeroRedesign() {
             <div style={{ display: "flex", alignItems: "center", gap: 10, color: "#888" }}>
               <SiApple size={17} />
               <SiArchlinux size={17} />
-              <SiUbuntu size={17} />
+              <SiDebian size={17} />
             </div>
             <div
               style={{
@@ -339,10 +340,19 @@ export function TrxHeroRedesign() {
           </div>
 
           {/* CTA buttons */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 16,
+              flexWrap: "wrap",
+            }}
+          >
             {/* Primary */}
             <Link
               href="#install"
+              className="primary-btn"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -356,16 +366,25 @@ export function TrxHeroRedesign() {
                 fontFamily: "var(--font-geist-sans)",
                 textDecoration: "none",
                 letterSpacing: "-0.01em",
-                boxShadow: "inset 0 1px 0 0 rgba(255,255,255,0.2), 0 2px 8px rgba(107,94,224,0.35)",
+                boxShadow: "inset 0 1px 0 0 rgba(255,255,255,0.2)",
                 transition: "background 0.15s ease",
               }}
             >
-              Get started →
+              <span>Get started</span>
+              <LuArrowRight
+                className="arrow-icon"
+                size={15}
+                strokeWidth={2.5}
+                style={{ marginLeft: 6, transition: "transform 0.15s ease" }}
+              />
             </Link>
             {/* Secondary */}
             <motion.div whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 500, damping: 20 }}>
-              <Link
-                href="#features"
+              <a
+                href="https://pie-314.github.io/trx/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="secondary-btn"
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -373,7 +392,7 @@ export function TrxHeroRedesign() {
                   borderRadius: 999,
                   background: "#FFFFFF",
                   border: "none",
-                  color: "#757575",
+                  color: "#555555",
                   fontSize: 14,
                   fontWeight: 500,
                   fontFamily: "var(--font-geist-sans)",
@@ -383,8 +402,14 @@ export function TrxHeroRedesign() {
                   transition: "background 0.15s ease",
                 }}
               >
-                Explore features
-              </Link>
+                <span>Read docs</span>
+                <LuArrowUpRight
+                  className="arrow-icon-diagonal"
+                  size={15}
+                  strokeWidth={2.5}
+                  style={{ marginLeft: 6, transition: "transform 0.15s ease" }}
+                />
+              </a>
             </motion.div>
           </div>
         </motion.div>
@@ -450,6 +475,14 @@ export function TrxHeroRedesign() {
           animation: cmd-border-spin 4s linear infinite;
         }
 
+        .primary-btn:hover .arrow-icon {
+          transform: translateX(4px);
+        }
+
+        .secondary-btn:hover .arrow-icon-diagonal {
+          transform: translate(3px, -3px);
+        }
+
         @media (prefers-reduced-motion: reduce) {
           .cmd-border-wrap {
             animation: none;
@@ -461,6 +494,10 @@ export function TrxHeroRedesign() {
               transparent,
               rgba(139,127,247,0.6)
             );
+          }
+          .primary-btn:hover .arrow-icon,
+          .secondary-btn:hover .arrow-icon-diagonal {
+            transform: none !important;
           }
         }
       `}</style>
