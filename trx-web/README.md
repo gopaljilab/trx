@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="../assets/logo.svg" width="180" alt="TRX" />
+<img src="../assets/logo.svg" width="320" alt="TRX" />
 
 **Landing page for TRX, a keyboard-first TUI for every package manager.**
 

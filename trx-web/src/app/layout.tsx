@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Geist, Geist_Mono, Syne } from "next/font/google";
-import { ButtonClickSound } from "@/components/landing/ButtonClickSound";
+import { ButtonClickSound } from "@/components/layout/ButtonClickSound";
 import "./globals.css";
 
 const geistSans = Geist({

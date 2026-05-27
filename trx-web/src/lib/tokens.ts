@@ -16,9 +16,3 @@ export const C = {
 export const S = {
   ring: "0 0 0 1px rgba(255,255,255,0.06)",
 };
-
-export const MAX_W = "1280px";
-export const SECTION_PAD_X = "40px";
-export const SECTION_PAD_Y = "80px";
-
-export const HERO_QUICK_INSTALL = "curl -fsSL https://trx.pidev.tech/install.sh | sh";

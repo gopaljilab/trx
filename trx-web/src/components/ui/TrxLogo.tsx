@@ -1,12 +1,11 @@
-import { C } from "./tokens";
-import { DINO_PATH } from "./dino-path";
+import { C } from "@/lib/tokens";
+import { DINO_PATH } from "@/components/hero/dino-path";
 
 export function TrxLogo({
   size = 32,
   variant = "dark",
 }: {
   size?: number;
-  /** `light`: white pill + dark wordmark (header / footer on dark chrome). */
   variant?: "dark" | "light";
 }) {
   const gap = Math.round(size * 0.3);
@@ -20,11 +19,7 @@ export function TrxLogo({
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
       <rect width="32" height="32" rx="7" fill={iconFill} />
       <svg x="6" y="7.5" width="20" height="17" viewBox="220 260 580 500">
-        <path
-          d={DINO_PATH}
-          fill={stroke}
-          fillRule="evenodd"
-        />
+        <path d={DINO_PATH} fill={stroke} fillRule="evenodd" />
       </svg>
     </svg>
   );

@@ -7,7 +7,9 @@ import { SiApple, SiArchlinux, SiDebian, SiGithub } from "react-icons/si";
 import { LuArrowRight, LuArrowUpRight } from "react-icons/lu";
 import { DINO_PATH } from "./dino-path";
 
-// ─── T-Rex head silhouette logo (SVG, facing right) ─────────────────────────
+const INSTALL_CMD = "curl -fsSL https://trx.pidev.tech/install.sh | sh";
+const EASE = [0.16, 1, 0.3, 1] as const;
+
 function TrxDinoLogo({ size = 80 }: { size?: number }) {
   return (
     <svg
@@ -18,21 +20,11 @@ function TrxDinoLogo({ size = 80 }: { size?: number }) {
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
     >
-      <path
-        d={DINO_PATH}
-        fillRule="evenodd"
-      />
+      <path d={DINO_PATH} fillRule="evenodd" />
     </svg>
   );
 }
 
-// ─── SVG noise overlay (paper texture) ──────────────────────────────────────
-
-const INSTALL_CMD = "curl -fsSL https://trx.pidev.tech/install.sh | sh";
-
-const EASE = [0.16, 1, 0.3, 1] as const;
-
-// ─── Icons ───────────────────────────────────────────────────────────────────
 function CheckIcon() {
   return (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
@@ -50,8 +42,7 @@ function CopyIcon() {
   );
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
-export function TrxHeroRedesign() {
+export function Hero() {
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reducedMotion = useReducedMotion();
@@ -83,7 +74,7 @@ export function TrxHeroRedesign() {
         justifyContent: "center",
       }}
     >
-      {/* ── GitHub icon - top right ── */}
+      {/* GitHub icon - top right */}
       <motion.a
         href="https://github.com/pie-314/trx"
         target="_blank"
@@ -114,8 +105,7 @@ export function TrxHeroRedesign() {
         <SiGithub size={18} />
       </motion.a>
 
-
-      {/* ── Main content ── */}
+      {/* Main content */}
       <div
         style={{
           position: "relative",
@@ -129,18 +119,12 @@ export function TrxHeroRedesign() {
           textAlign: "center",
         }}
       >
-        {/* Logo block: dino + wordmark + pill */}
+        {/* Logo block */}
         <motion.div
           initial={{ opacity: 0, transform: reducedMotion ? "translateY(0)" : "translateY(-10px)" }}
           animate={{ opacity: 1, transform: "translateY(0)" }}
           transition={{ duration: 0.55, ease: EASE }}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 14,
-            marginBottom: 32,
-          }}
+          style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, marginBottom: 32 }}
         >
           <div style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 20 }}>
             <div
@@ -159,12 +143,10 @@ export function TrxHeroRedesign() {
             >
               trx
             </div>
-
             <div style={{ color: "#ffffff", filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.5))" }}>
               <TrxDinoLogo size={90} />
             </div>
           </div>
-
           <div
             style={{
               display: "inline-flex",
@@ -203,70 +185,68 @@ export function TrxHeroRedesign() {
           <span style={{ color: "#F5F5F5", display: "block" }}>One TUI for all your packages.</span>
         </motion.h1>
 
-        {/* Command box */}
+        {/* Install command */}
         <motion.div
           initial={{ opacity: 0, transform: reducedMotion ? "translateY(0)" : "translateY(20px)" }}
           animate={{ opacity: 1, transform: "translateY(0)" }}
           transition={{ duration: 0.6, ease: EASE, delay: 0.14 }}
           style={{ width: "100%", maxWidth: 580, marginBottom: 52 }}
         >
-          {/* Animated gradient border wrapper */}
           <div className="cmd-border-wrap">
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              background: "#101010",
-              borderRadius: 14,
-              padding: "13px 13px 13px 22px",
-              gap: 12,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
-            }}
-          >
-            <code
+            <div
               style={{
-                flex: 1,
-                fontFamily: "var(--font-geist-mono)",
-                fontSize: "13.5px",
-                color: "#DCDCDC",
-                letterSpacing: "-0.01em",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                userSelect: "all",
-              }}
-            >
-              <span style={{ color: "#666", marginRight: 8 }}>$</span>
-              {INSTALL_CMD}
-            </code>
-
-            <button
-              onClick={handleCopy}
-              title={copied ? "Copied!" : "Copy to clipboard"}
-              style={{
-                flexShrink: 0,
-                display: "inline-flex",
+                display: "flex",
                 alignItems: "center",
-                gap: 6,
-                padding: "7px 13px",
-                borderRadius: 8,
-                border: "1px solid rgba(255,255,255,0.07)",
-                background: copied ? "rgba(34, 70, 48, 0.9)" : "rgba(38, 38, 38, 0.95)",
-                color: copied ? "#5eea8a" : "#909090",
-                fontSize: 12,
-                fontWeight: 500,
-                fontFamily: "var(--font-geist-sans)",
-                letterSpacing: "-0.01em",
-                cursor: "pointer",
-                transition: "background 0.18s ease, color 0.18s ease",
-                whiteSpace: "nowrap",
+                background: "#101010",
+                borderRadius: 14,
+                padding: "13px 13px 13px 22px",
+                gap: 12,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
               }}
             >
-              {copied ? <CheckIcon /> : <CopyIcon />}
-              {copied ? "Copied!" : "Copy"}
-            </button>
+              <code
+                style={{
+                  flex: 1,
+                  fontFamily: "var(--font-geist-mono)",
+                  fontSize: "13.5px",
+                  color: "#DCDCDC",
+                  letterSpacing: "-0.01em",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  userSelect: "all",
+                }}
+              >
+                <span style={{ color: "#666", marginRight: 8 }}>$</span>
+                {INSTALL_CMD}
+              </code>
+              <button
+                onClick={handleCopy}
+                title={copied ? "Copied!" : "Copy to clipboard"}
+                style={{
+                  flexShrink: 0,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "7px 13px",
+                  borderRadius: 8,
+                  border: "1px solid rgba(255,255,255,0.07)",
+                  background: copied ? "rgba(34, 70, 48, 0.9)" : "rgba(38, 38, 38, 0.95)",
+                  color: copied ? "#5eea8a" : "#909090",
+                  fontSize: 12,
+                  fontWeight: 500,
+                  fontFamily: "var(--font-geist-sans)",
+                  letterSpacing: "-0.01em",
+                  cursor: "pointer",
+                  transition: "background 0.18s ease, color 0.18s ease",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {copied ? <CheckIcon /> : <CopyIcon />}
+                {copied ? "Copied!" : "Copy"}
+              </button>
+            </div>
           </div>
-          </div>{/* end cmd-border-wrap */}
         </motion.div>
 
         {/* Bottom cluster */}
@@ -274,14 +254,8 @@ export function TrxHeroRedesign() {
           initial={{ opacity: 0, transform: reducedMotion ? "translateY(0)" : "translateY(24px)" }}
           animate={{ opacity: 1, transform: "translateY(0)" }}
           transition={{ duration: 0.65, ease: EASE, delay: 0.22 }}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 18,
-          }}
+          style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 18 }}
         >
-          {/* Feature dots row */}
           <div
             style={{
               display: "flex",
@@ -301,7 +275,6 @@ export function TrxHeroRedesign() {
             <span>Cross-platform</span>
           </div>
 
-          {/* Platform compatibility card */}
           <div
             style={{
               display: "inline-flex",
@@ -318,14 +291,7 @@ export function TrxHeroRedesign() {
               <SiArchlinux size={17} />
               <SiDebian size={17} />
             </div>
-            <div
-              style={{
-                width: 1,
-                height: 18,
-                background: "rgba(255,255,255,0.12)",
-                flexShrink: 0,
-              }}
-            />
+            <div style={{ width: 1, height: 18, background: "rgba(255,255,255,0.12)", flexShrink: 0 }} />
             <span
               style={{
                 fontFamily: "var(--font-geist-sans)",
@@ -339,17 +305,7 @@ export function TrxHeroRedesign() {
             </span>
           </div>
 
-          {/* CTA buttons */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 16,
-              flexWrap: "wrap",
-            }}
-          >
-            {/* Primary */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, flexWrap: "wrap" }}>
             <Link
               href="#install"
               className="primary-btn"
@@ -371,14 +327,8 @@ export function TrxHeroRedesign() {
               }}
             >
               <span>Get started</span>
-              <LuArrowRight
-                className="arrow-icon"
-                size={15}
-                strokeWidth={2.5}
-                style={{ marginLeft: 6, transition: "transform 0.15s ease" }}
-              />
+              <LuArrowRight className="arrow-icon" size={15} strokeWidth={2.5} style={{ marginLeft: 6, transition: "transform 0.15s ease" }} />
             </Link>
-            {/* Secondary */}
             <motion.div whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 500, damping: 20 }}>
               <a
                 href="https://pie-314.github.io/trx/"
@@ -403,19 +353,14 @@ export function TrxHeroRedesign() {
                 }}
               >
                 <span>Read docs</span>
-                <LuArrowUpRight
-                  className="arrow-icon-diagonal"
-                  size={15}
-                  strokeWidth={2.5}
-                  style={{ marginLeft: 6, transition: "transform 0.15s ease" }}
-                />
+                <LuArrowUpRight className="arrow-icon-diagonal" size={15} strokeWidth={2.5} style={{ marginLeft: 6, transition: "transform 0.15s ease" }} />
               </a>
             </motion.div>
           </div>
         </motion.div>
       </div>
 
-      {/* ── Scroll chevron ── */}
+      {/* Scroll chevron */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -433,14 +378,8 @@ export function TrxHeroRedesign() {
         }}
       >
         <motion.svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="rgba(255,255,255,0.25)"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+          width="20" height="20" viewBox="0 0 24 24" fill="none"
+          stroke="rgba(255,255,255,0.25)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
           animate={{ y: [0, 4, 0] }}
           transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
         >
@@ -454,51 +393,28 @@ export function TrxHeroRedesign() {
           inherits: false;
           initial-value: 0deg;
         }
-
-        @keyframes cmd-border-spin {
-          to { --cmd-angle: 360deg; }
-        }
-
+        @keyframes cmd-border-spin { to { --cmd-angle: 360deg; } }
         .cmd-border-wrap {
           border-radius: 20px;
           padding: 6px;
           background: conic-gradient(
             from var(--cmd-angle),
-            rgba(139,127,247,0.85) 0deg,
-            transparent 55deg,
-            transparent 125deg,
-            rgba(255,255,255,0.25) 180deg,
-            transparent 235deg,
-            transparent 305deg,
+            rgba(139,127,247,0.85) 0deg, transparent 55deg,
+            transparent 125deg, rgba(255,255,255,0.25) 180deg,
+            transparent 235deg, transparent 305deg,
             rgba(139,127,247,0.85) 360deg
           );
           animation: cmd-border-spin 4s linear infinite;
         }
-
-        .primary-btn:hover .arrow-icon {
-          transform: translateX(4px);
-        }
-
-        .secondary-btn:hover .arrow-icon-diagonal {
-          transform: translate(3px, -3px);
-        }
-
+        .primary-btn:hover .arrow-icon { transform: translateX(4px); }
+        .secondary-btn:hover .arrow-icon-diagonal { transform: translate(3px, -3px); }
         @media (prefers-reduced-motion: reduce) {
           .cmd-border-wrap {
             animation: none;
-            background: conic-gradient(
-              from 45deg,
-              rgba(139,127,247,0.6),
-              transparent,
-              rgba(255,255,255,0.15),
-              transparent,
-              rgba(139,127,247,0.6)
-            );
+            background: conic-gradient(from 45deg, rgba(139,127,247,0.6), transparent, rgba(255,255,255,0.15), transparent, rgba(139,127,247,0.6));
           }
           .primary-btn:hover .arrow-icon,
-          .secondary-btn:hover .arrow-icon-diagonal {
-            transform: none !important;
-          }
+          .secondary-btn:hover .arrow-icon-diagonal { transform: none !important; }
         }
       `}</style>
     </div>

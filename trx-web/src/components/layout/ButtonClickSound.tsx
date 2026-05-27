@@ -24,10 +24,6 @@ function shouldPlayForTarget(target: EventTarget | null): boolean {
   return true;
 }
 
-/**
- * Plays `/button_soft.mp3` on primary pointer down for real buttons, button-like inputs,
- * `role="button"`, and elements with the `landing-ui-sound` class (CTA links).
- */
 export function ButtonClickSound() {
   useEffect(() => {
     const onPointerDown = (e: PointerEvent) => {
