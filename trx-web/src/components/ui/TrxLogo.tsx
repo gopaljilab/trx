@@ -1,11 +1,11 @@
-import { C } from "./tokens";
+import { C } from "@/lib/tokens";
+import { DINO_PATH } from "@/components/hero/dino-path";
 
 export function TrxLogo({
   size = 32,
   variant = "dark",
 }: {
   size?: number;
-  /** `light`: white pill + dark wordmark (header / footer on dark chrome). */
   variant?: "dark" | "light";
 }) {
   const gap = Math.round(size * 0.3);
@@ -13,14 +13,14 @@ export function TrxLogo({
 
   const iconFill = variant === "light" ? "#ebebeb" : C.surface2;
   const stroke = variant === "light" ? "#141414" : C.text;
-  const promptBar = variant === "light" ? "#3d3d3d" : C.text2;
   const wordmark = variant === "light" ? "#141414" : C.text;
 
   const svg = (
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
       <rect width="32" height="32" rx="7" fill={iconFill} />
-      <path d="M9 12L14 16L9 20" stroke={stroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      <rect x="16" y="19" width="7" height="1.8" rx="0.9" fill={promptBar} />
+      <svg x="6" y="7.5" width="20" height="17" viewBox="220 260 580 500">
+        <path d={DINO_PATH} fill={stroke} fillRule="evenodd" />
+      </svg>
     </svg>
   );
 

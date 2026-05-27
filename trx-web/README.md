@@ -1,78 +1,72 @@
 <div align="center">
 
-<img src="../assets/logo.svg" width="180" alt="TRX" />
+<img src="../assets/logo.svg" width="320" alt="TRX" />
 
-<br/>
-<br/>
-
-**Landing page for TRX, the terminal package manager.**
+**Landing page for TRX, a keyboard-first TUI for every package manager.**
 
 Built with Next.js 16 · React 19 · Tailwind CSS 4 · TypeScript
 
 <br/>
 <br/>
 
-![Rust](https://img.shields.io/badge/Rust-1.70%2B-orange?style=flat&logo=rust)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat)
 ![Platform](https://img.shields.io/badge/Platform-macOS%20%7C%20Arch%20%7C%20Debian-blue?style=flat)
+![Branch](https://img.shields.io/badge/Branch-redesign-purple?style=flat)
 
 </div>
-
----
-
-## Preview
-
-<div align="center">
-
-![Landing page — hero, quick install, and TUI mockup](../assets/web-preview.png)
-
-</div>
-
-**On the page:** tagline *“The package manager for the terminal generation.”*, value props (fast keyboard-driven cross-platform search, 50k+ packages, pure Rust), quick install via curl, and a three-panel terminal-style demo (search / installed / updates, managers such as pacman, AUR, brew).
-
-**Quick install** (same as the site):
-
-```bash
-curl -fsSL https://trx.pidev.tech/install.sh | sh
-```
-
-**To embed a video** in this README later, add something like:
-
-```html
-<video src="../assets/web-demo.mp4" controls width="720" />
-```
 
 ---
 
 ## About
 
-`trx-web` is the marketing and landing site that lives alongside the [`trx`](../README.md) CLI in this monorepo. It is a fully static Next.js site with no runtime connection to the Rust binary.
+`trx-web` is the marketing site for [`trx`](../README.md), a terminal UI built on top of your existing package manager. It gives you a unified, keyboard-first interface for searching, inspecting, and managing packages, whether you're on macOS with Homebrew, Arch with Pacman + AUR, or Debian/Ubuntu with APT.
 
-**What the site covers:**
+The site is a fully static Next.js app with no runtime connection to the Rust binary.
 
-- Hero with headline, CTAs (Get started, View source), and status line (“Written in pure Rust — no async runtime.”)
-- Quick install strip with copy-to-clipboard for the install script URL
-- Animated live-demo terminal mockup (3-panel TUI: package list, detail pane, managers)
-- Feature overview: fuzzy search, multi-manager, batch operations, zero overhead
-- Step-by-step install guide with keyboard shortcut reference
-- Platform support badges: macOS, Arch Linux, Debian/Ubuntu
+---
 
-**Not implemented yet:**
+## What's on the Page
 
-- Web UI that talks to a running `trx` process
-- Docs site, changelog, or release notes page
+| Section      | Description                                                                                                                                       |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Hero**     | `trx` wordmark + dino logo, headline, animated install command with copy button, platform compatibility card (macOS · Arch · Debian), CTA buttons |
+| **Features** | Bento grid: Fuzzy Search, Multi-Manager, Batch Operations, Zero Runtime (`<50ms`)                                                                 |
+| **Install**  | 3-step guide (install → launch → search & install) with animated SVG flow connectors and copy-able commands                                       |
+| **Footer**   | Link columns (Product, Resources, Project) + copyright                                                                                            |
+
+**Install command (same as the site):**
+
+```bash
+curl -fsSL https://trx.pidev.tech/install.sh | sh
+```
+
+---
+
+## Design
+
+The current `redesign` branch applies a full dark-mode redesign:
+
+- **Background:** `#111111` with subtle leather noise texture
+- **Cards:** `#1c1c1c` with `rgba(255,255,255,0.07)` ring shadow + inset top highlight
+- **Inner panels:** `#252525`
+- **Primary accent:** Indigo gradient (`#8B7FF7 → #6B5EE0`)
+- **Typography:** Geist Sans + Geist Mono (via `next/font/google`)
+- **Animations:** `motion/react` (Motion 12): scroll-reveal, animated SVG flow connectors, rotating conic-gradient command box border
+- **Platform support:** macOS (Apple), Arch Based OS (Arch Linux), Debian Based (Debian)
 
 ---
 
 ## Stack
 
-| Layer | Choice |
-|-------|--------|
-| Framework | Next.js 16 (App Router) |
-| UI | React 19 |
-| Styling | Tailwind CSS 4 + inline styles |
-| Language | TypeScript |
-| Package manager | Bun |
+| Layer           | Choice                                |
+| --------------- | ------------------------------------- |
+| Framework       | Next.js 16 (App Router)               |
+| UI              | React 19                              |
+| Styling         | Tailwind CSS 4 + inline styles        |
+| Animation       | Motion 12 (`motion/react`)            |
+| Icons           | `react-icons` (Lucide + Simple Icons) |
+| Language        | TypeScript                            |
+| Package manager | Bun                                   |
 
 > See [AGENTS.md](./AGENTS.md) for important Next.js 16 API caveats before editing.
 
@@ -95,30 +89,26 @@ Open [http://localhost:3000](http://localhost:3000).
 ```
 trx-web/
 ├── src/
-│   └── app/
-│       ├── page.tsx      # full landing page (single file)
-│       ├── layout.tsx    # root layout + metadata
-│       ├── globals.css   # Tailwind import
-│       └── icon.svg      # favicon (auto-detected by Next.js)
-├── public/               # static assets served at /
+│   ├── app/
+│   │   ├── page.tsx           # full landing page (features + install sections)
+│   │   ├── layout.tsx         # root layout, fonts (Geist Sans/Mono), metadata
+│   │   ├── globals.css        # Tailwind import
+│   │   └── icon.svg           # favicon
+│   └── components/landing/
+│       ├── TrxHeroRedesign.tsx  # hero section (logo, headline, command box, CTAs)
+│       ├── LandingHeader.tsx    # sticky top nav
+│       ├── LandingCTA.tsx       # CTA banner
+│       ├── LandingFooterLight.tsx # footer with link columns
+│       ├── TrxLogo.tsx          # trx pill logo component
+│       └── dino-path.ts         # SVG path data for the dino logo
+├── public/                    # static assets served at /
 └── package.json
 ```
-
----
-
-## Assets
-
-Shared project assets (logo, screenshots, demo gif) live in [`../assets/`](../assets/) at the monorepo root:
-
-| File | Description |
-|------|-------------|
-| `assets/logo.svg` | TRX logo (icon + wordmark, light on transparent) |
-| `assets/web-preview.png` | Landing page screenshot (hero + install + mockup) |
-| `assets/trx-preview.gif` | Terminal demo recording |
 
 ---
 
 ## Links
 
 - [TRX root README](../README.md)
+- [Live site](https://trx.pidev.tech)
 - [Next.js docs](https://nextjs.org/docs)
