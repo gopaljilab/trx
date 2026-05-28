@@ -17,6 +17,23 @@ Search 50,000+ packages in under 50ms. Install, remove, and update without leavi
 
 </div>
 
+<details>
+<summary>📑 Table of Contents</summary>
+
+- [What is TRX?](#what-is-trx)
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Keybindings](#keybindings)
+- [Architecture](#architecture)
+- [Supported Package Managers](#supported-package-managers)
+- [Configuration](#configuration)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [License](#license)
+
+</details>
+
 ---
 
 <div align="center">
@@ -60,7 +77,6 @@ curl -fsSL https://trx.pidev.tech/install.sh | sh
 ```
 
 ### From source
-...
 
 ```bash
 git clone https://github.com/pie-314/trx.git
