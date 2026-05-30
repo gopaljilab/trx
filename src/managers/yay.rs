@@ -43,9 +43,9 @@ pub fn search_aur(search_word: &str, _aur_helper: &str) -> Vec<Package> {
             let name = item["Name"].as_str().unwrap_or("").to_string();
             let version = item["Version"].as_str().unwrap_or("").to_string();
             let description = item["Description"].as_str().unwrap_or("").to_string();
-            
+
             let score = crate::fuzzy::fuzzy_match(search_word, &name);
-            
+
             results.push(Package {
                 provider: "aur".to_string(),
                 name,
@@ -56,7 +56,11 @@ pub fn search_aur(search_word: &str, _aur_helper: &str) -> Vec<Package> {
         }
     }
 
-    results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+    results.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     results
 }
 

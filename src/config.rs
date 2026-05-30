@@ -1,7 +1,7 @@
-use serde::{Deserialize, Serialize};
-use std::fs;
 use directories::ProjectDirs;
 use ratatui::style::Color;
+use serde::{Deserialize, Serialize};
+use std::fs;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Settings {
@@ -70,7 +70,12 @@ impl Default for Config {
                 auto_cleanup: false,
                 default_tab: "Search".to_string(),
                 max_search_results: 50,
-                enabled_managers: vec!["pacman".to_string(), "yay".to_string(), "brew".to_string(), "apt".to_string()],
+                enabled_managers: vec![
+                    "pacman".to_string(),
+                    "yay".to_string(),
+                    "brew".to_string(),
+                    "apt".to_string(),
+                ],
                 border_style: "Rounded".to_string(),
                 spinner_type: "Dots".to_string(),
                 skipped_update_version: None,
@@ -177,10 +182,18 @@ impl Config {
         };
         // Linearise each sRGB channel and compute relative luminance (Y).
         let linearise = |c: f64| -> f64 {
-            if c <= 0.04045 { c / 12.92 } else { ((c + 0.055) / 1.055).powf(2.4) }
+            if c <= 0.04045 {
+                c / 12.92
+            } else {
+                ((c + 0.055) / 1.055).powf(2.4)
+            }
         };
         let y = 0.2126 * linearise(r) + 0.7152 * linearise(g) + 0.0722 * linearise(b);
-        if y >= 0.179 { Color::Black } else { Color::White }
+        if y >= 0.179 {
+            Color::Black
+        } else {
+            Color::White
+        }
     }
 
     pub fn current_theme(&self) -> Theme {
@@ -189,7 +202,7 @@ impl Config {
                 return custom.clone();
             }
         }
-        
+
         match self.theme_name.as_str() {
             "Nord" => Theme {
                 border_color: "#81A1C1".to_string(),
@@ -235,4 +248,3 @@ impl Config {
         }
     }
 }
-

@@ -82,7 +82,11 @@ impl PackageManager for BrewManager {
             .filter(|p| p.score > 0.01)
             .collect();
 
-        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+        results.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         results.truncate(max);
 
         // Update cache (keyed by provider+query so multi-manager setups don't collide)
@@ -144,7 +148,10 @@ impl PackageManager for BrewManager {
     }
 
     fn get_updates(&self) -> Vec<Package> {
-        let output = Command::new("brew").args(["outdated", "--verbose"]).output().ok();
+        let output = Command::new("brew")
+            .args(["outdated", "--verbose"])
+            .output()
+            .ok();
 
         if let Some(output) = output {
             let stdout = String::from_utf8_lossy(&output.stdout);
@@ -178,7 +185,10 @@ impl PackageManager for BrewManager {
             }
         }
 
-        let output = Command::new("brew").args(["info", "--json=v2", pkg]).output().ok()?;
+        let output = Command::new("brew")
+            .args(["info", "--json=v2", pkg])
+            .output()
+            .ok()?;
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         let json: serde_json::Value = serde_json::from_str(&stdout).ok()?;

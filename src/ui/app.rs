@@ -4,8 +4,8 @@ use color_eyre::Result;
 use ratatui::{
     DefaultTerminal,
     crossterm::event::{self, Event, KeyCode, KeyEventKind},
-    widgets::ListState,
     style::Color,
+    widgets::ListState,
 };
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -16,46 +16,88 @@ use std::time::{Duration, Instant};
 
 use crate::managers::{self, Package};
 
+/// Primary screen/tab selection for the TUI.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Tab {
+    /// Search for packages by fuzzy query.
     Search,
+    /// List installed packages.
     Installed,
+    /// List packages with available updates.
     Updates,
+    /// Configure UI/theme/backend settings.
     Settings,
 }
 
+/// State of the currently displayed package details area.
 #[derive(Debug, Clone, PartialEq)]
 pub enum DetailsState {
+    /// No details are currently being shown.
     Empty,
+    /// Details are being fetched asynchronously.
     Loading,
+    /// Details fetched successfully.
     Success(std::collections::HashMap<String, String>),
+    /// Failed to fetch details.
     Error(String),
 }
 
+/// Main application state and event loop for the terminal UI.
+///
+/// `App` owns:
+/// - the current search/query state,
+/// - the selected tab and selection cursor,
+/// - the loaded package lists and details results,
+/// - and a backend `PackageManager` used to execute installs/removals/updates.
 pub struct App {
+    /// Current text input (used in editing mode and also for the search query).
     pub input: String,
+
+    /// Cursor position (in characters) for `input` when editing.
     pub character_index: usize,
+    /// Whether the UI is interpreting keystrokes as normal navigation or as text input.
     pub input_mode: InputMode,
+    /// Currently selected tab/screen.
     pub current_tab: Tab,
+    /// Current list of packages displayed on screen (depends on `current_tab`).
     pub packages: Vec<Package>,
+    /// Per-row checkbox state aligned with `packages` (same length/order).
     pub checked: Vec<bool>,
+    /// Names of the packages selected for actions (install/remove/update).
     pub selected_names: HashSet<String>,
+    /// Snapshot of installed package names used to prevent invalid upgrades/removals.
     pub installed_packages: HashSet<String>,
+    /// Index into `packages` for the highlighted row.
     pub selected: usize,
+    /// Ratatui list widget selection state.
     pub list_state: ListState,
+    /// Pre-formatted message strings displayed for the current `packages` list.
     pub messages: Vec<String>,
+    /// Whether the app is currently loading data for the current tab.
     pub loading: bool,
+    /// Current state for the details panel.
     pub details_state: DetailsState,
+    /// Previously selected row index, used to avoid re-fetching details unnecessarily.
     pub last_selected: usize,
+    /// Whether the help overlay is currently shown.
     pub show_help: bool,
+    /// Update prompt payload: `(version, url)`; shown when an update is detected.
     pub update_prompt: Option<(String, String)>, // (version, url)
+    /// Whether the user chose “yes” in the update prompt.
     pub update_selected_yes: bool,
+    /// Spinner animation tick.
     pub spinner_tick: u8,
+    /// Backend package manager used to fetch and mutate system packages.
     pub manager: Arc<Box<dyn managers::PackageManager>>,
+    /// Loaded configuration (themes, keybindings, enabled managers, etc.).
     pub config: crate::config::Config,
+    /// Index of the currently focused setting/control row.
     pub settings_index: usize,
+    /// Scroll position for the details panel.
     pub details_scroll: u16,
+    /// List of available manager identifiers for toggling backends.
     pub available_managers: Vec<String>,
+    /// Optional popup message: `(message, color)`.
     pub popup_message: Option<(String, Color)>, // (message, color)
     result_tx: Sender<(String, Vec<Package>)>,
     result_rx: Receiver<(String, Vec<Package>)>,
@@ -72,14 +114,21 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(result_tx: Sender<(String, Vec<Package>)>, result_rx: Receiver<(String, Vec<Package>)>) -> Self {
+    /// Create a new application instance.
+    ///
+    /// This loads configuration, constructs the appropriate system `PackageManager`,
+    /// and may start an asynchronous update check depending on `settings.auto_update_check`.
+    pub fn new(
+        result_tx: Sender<(String, Vec<Package>)>,
+        result_rx: Receiver<(String, Vec<Package>)>,
+    ) -> Self {
         let mut list_state = ListState::default();
         list_state.select(None);
 
         let (details_tx, details_rx) = std::sync::mpsc::channel();
         let (update_tx, update_rx) = std::sync::mpsc::channel();
         let config = crate::config::Config::load();
-        
+
         // Spawn parallel update check if enabled; keep a clone of the sender
         // so the user can manually re-trigger a check at any time.
         if config.settings.auto_update_check {
@@ -145,19 +194,24 @@ impl App {
         app
     }
 
+    /// Show a temporary popup message.
+    ///
+    /// The popup is automatically cleared by the event loop after a short delay.
     pub fn set_popup(&mut self, msg: String, color: Color) {
         self.popup_message = Some((msg, color));
         self.popup_timer = Some(Instant::now());
     }
 
-    /// Spawn a fresh update-check thread and funnel the result back through
-    /// the existing `update_rx` channel so the main event loop handles it
-    /// identically to the automatic startup check.
-    /// A `compare_exchange` guard prevents overlapping requests: if a check is
-    /// already in flight the call is a no-op.
+    /// Spawn a fresh update-check thread.
+    ///
+    /// The result is sent through the existing `update_rx` channel so the main event
+    /// loop handles it identically to the automatic startup check.
+    ///
+    /// If a check is already running, this is a no-op.
     pub fn trigger_manual_update_check(&self) {
         // Atomically claim the in-flight slot; bail out if already taken.
-        if self.update_check_in_flight
+        if self
+            .update_check_in_flight
             .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
             .is_err()
         {
@@ -221,6 +275,10 @@ impl App {
 
     /// Returns the last successfully executed search query (updated after debounce).
     /// Prefer checking `input.trim()` for the *current* user input.
+    /// Return the last successfully executed search query.
+    ///
+    /// The value is updated after the debounce window and once the query differs from
+    /// the previous one.
     pub fn search_query(&self) -> &str {
         &self.last_search_query
     }
@@ -395,12 +453,20 @@ impl App {
     }
 
     fn toggle_manager(&mut self, name: &str) {
-        if self.config.settings.enabled_managers.contains(&name.to_string()) {
+        if self
+            .config
+            .settings
+            .enabled_managers
+            .contains(&name.to_string())
+        {
             if self.config.settings.enabled_managers.len() > 1 {
                 self.config.settings.enabled_managers.retain(|m| m != name);
                 self.set_popup(format!("Disabled {}", name), Color::Yellow);
             } else {
-                self.set_popup("Must have at least one manager enabled".to_string(), Color::Red);
+                self.set_popup(
+                    "Must have at least one manager enabled".to_string(),
+                    Color::Red,
+                );
             }
         } else {
             self.config.settings.enabled_managers.push(name.to_string());
@@ -409,7 +475,7 @@ impl App {
         let _ = self.config.save();
         // Re-initialize manager
         self.manager = Arc::new(managers::get_system_manager(&self.config));
-        
+
         // Refresh current list if applicable
         if self.current_tab != Tab::Settings {
             self.reset_tab_state();
@@ -417,8 +483,19 @@ impl App {
     }
 
     fn next_theme(&mut self) {
-        let themes = vec!["Default", "Nord", "Dracula", "OneDark", "Gruvbox", "Solarized", "Custom"];
-        let current_pos = themes.iter().position(|&t| t == self.config.theme_name).unwrap_or(0);
+        let themes = vec![
+            "Default",
+            "Nord",
+            "Dracula",
+            "OneDark",
+            "Gruvbox",
+            "Solarized",
+            "Custom",
+        ];
+        let current_pos = themes
+            .iter()
+            .position(|&t| t == self.config.theme_name)
+            .unwrap_or(0);
         let next_pos = (current_pos + 1) % themes.len();
         self.config.theme_name = themes[next_pos].to_string();
         if self.config.theme_name == "Custom" && self.config.custom_theme.is_none() {
@@ -429,9 +506,24 @@ impl App {
     }
 
     fn prev_theme(&mut self) {
-        let themes = vec!["Default", "Nord", "Dracula", "OneDark", "Gruvbox", "Solarized", "Custom"];
-        let current_pos = themes.iter().position(|&t| t == self.config.theme_name).unwrap_or(0);
-        let next_pos = if current_pos == 0 { themes.len() - 1 } else { current_pos - 1 };
+        let themes = vec![
+            "Default",
+            "Nord",
+            "Dracula",
+            "OneDark",
+            "Gruvbox",
+            "Solarized",
+            "Custom",
+        ];
+        let current_pos = themes
+            .iter()
+            .position(|&t| t == self.config.theme_name)
+            .unwrap_or(0);
+        let next_pos = if current_pos == 0 {
+            themes.len() - 1
+        } else {
+            current_pos - 1
+        };
         self.config.theme_name = themes[next_pos].to_string();
         if self.config.theme_name == "Custom" && self.config.custom_theme.is_none() {
             self.config.custom_theme = Some(self.config.theme.clone());
@@ -442,58 +534,112 @@ impl App {
 
     fn next_default_tab(&mut self) {
         let tabs = vec!["Search", "Installed", "Updates", "Settings"];
-        let current_pos = tabs.iter().position(|&t| t == self.config.settings.default_tab).unwrap_or(0);
+        let current_pos = tabs
+            .iter()
+            .position(|&t| t == self.config.settings.default_tab)
+            .unwrap_or(0);
         let next_pos = (current_pos + 1) % tabs.len();
         self.config.settings.default_tab = tabs[next_pos].to_string();
         let _ = self.config.save();
-        self.set_popup(format!("Default Tab: {}", self.config.settings.default_tab), Color::Cyan);
+        self.set_popup(
+            format!("Default Tab: {}", self.config.settings.default_tab),
+            Color::Cyan,
+        );
     }
 
     fn prev_default_tab(&mut self) {
         let tabs = vec!["Search", "Installed", "Updates", "Settings"];
-        let current_pos = tabs.iter().position(|&t| t == self.config.settings.default_tab).unwrap_or(0);
-        let next_pos = if current_pos == 0 { tabs.len() - 1 } else { current_pos - 1 };
+        let current_pos = tabs
+            .iter()
+            .position(|&t| t == self.config.settings.default_tab)
+            .unwrap_or(0);
+        let next_pos = if current_pos == 0 {
+            tabs.len() - 1
+        } else {
+            current_pos - 1
+        };
         self.config.settings.default_tab = tabs[next_pos].to_string();
         let _ = self.config.save();
-        self.set_popup(format!("Default Tab: {}", self.config.settings.default_tab), Color::Cyan);
+        self.set_popup(
+            format!("Default Tab: {}", self.config.settings.default_tab),
+            Color::Cyan,
+        );
     }
 
     fn next_border_style(&mut self) {
         let styles = vec!["Plain", "Rounded", "Double", "Thick"];
-        let current_pos = styles.iter().position(|&s| s == self.config.settings.border_style).unwrap_or(0);
+        let current_pos = styles
+            .iter()
+            .position(|&s| s == self.config.settings.border_style)
+            .unwrap_or(0);
         let next_pos = (current_pos + 1) % styles.len();
         self.config.settings.border_style = styles[next_pos].to_string();
         let _ = self.config.save();
-        self.set_popup(format!("Border Style: {}", self.config.settings.border_style), Color::Cyan);
+        self.set_popup(
+            format!("Border Style: {}", self.config.settings.border_style),
+            Color::Cyan,
+        );
     }
 
     fn prev_border_style(&mut self) {
         let styles = vec!["Plain", "Rounded", "Double", "Thick"];
-        let current_pos = styles.iter().position(|&s| s == self.config.settings.border_style).unwrap_or(0);
-        let next_pos = if current_pos == 0 { styles.len() - 1 } else { current_pos - 1 };
+        let current_pos = styles
+            .iter()
+            .position(|&s| s == self.config.settings.border_style)
+            .unwrap_or(0);
+        let next_pos = if current_pos == 0 {
+            styles.len() - 1
+        } else {
+            current_pos - 1
+        };
         self.config.settings.border_style = styles[next_pos].to_string();
         let _ = self.config.save();
-        self.set_popup(format!("Border Style: {}", self.config.settings.border_style), Color::Cyan);
+        self.set_popup(
+            format!("Border Style: {}", self.config.settings.border_style),
+            Color::Cyan,
+        );
     }
 
     fn next_spinner_type(&mut self) {
         let types = vec!["Dots", "Bars", "Pulse", "Classic"];
-        let current_pos = types.iter().position(|&t| t == self.config.settings.spinner_type).unwrap_or(0);
+        let current_pos = types
+            .iter()
+            .position(|&t| t == self.config.settings.spinner_type)
+            .unwrap_or(0);
         let next_pos = (current_pos + 1) % types.len();
         self.config.settings.spinner_type = types[next_pos].to_string();
         let _ = self.config.save();
-        self.set_popup(format!("Spinner: {}", self.config.settings.spinner_type), Color::Cyan);
+        self.set_popup(
+            format!("Spinner: {}", self.config.settings.spinner_type),
+            Color::Cyan,
+        );
     }
 
     fn prev_spinner_type(&mut self) {
         let types = vec!["Dots", "Bars", "Pulse", "Classic"];
-        let current_pos = types.iter().position(|&t| t == self.config.settings.spinner_type).unwrap_or(0);
-        let next_pos = if current_pos == 0 { types.len() - 1 } else { current_pos - 1 };
+        let current_pos = types
+            .iter()
+            .position(|&t| t == self.config.settings.spinner_type)
+            .unwrap_or(0);
+        let next_pos = if current_pos == 0 {
+            types.len() - 1
+        } else {
+            current_pos - 1
+        };
         self.config.settings.spinner_type = types[next_pos].to_string();
         let _ = self.config.save();
-        self.set_popup(format!("Spinner: {}", self.config.settings.spinner_type), Color::Cyan);
+        self.set_popup(
+            format!("Spinner: {}", self.config.settings.spinner_type),
+            Color::Cyan,
+        );
     }
 
+    /// Run the main application event loop.
+    ///
+    /// # Returns
+    /// - `Ok(Some(url))` when the user accepts an update prompt; the caller can then open
+    ///   the update URL.
+    /// - `Ok(None)` when the user quits without accepting an update.
     pub fn run(mut self, terminal: &mut DefaultTerminal) -> Result<Option<String>> {
         loop {
             if let Tab::Search = self.current_tab {
@@ -511,7 +657,10 @@ impl App {
                     // from what the user skipped. Clearing unconditionally would erase
                     // the user's explicit choice when they manually recheck and dismiss.
                     let detected_version = &update.0;
-                    let skip_is_stale = self.config.settings.skipped_update_version
+                    let skip_is_stale = self
+                        .config
+                        .settings
+                        .skipped_update_version
                         .as_deref()
                         .map_or(false, |skipped| skipped != detected_version);
                     if skip_is_stale {
@@ -596,7 +745,8 @@ impl App {
                                     }
                                     KeyCode::Esc | KeyCode::Char('q') => {
                                         if let Some((version, _)) = self.update_prompt.take() {
-                                            self.config.settings.skipped_update_version = Some(version);
+                                            self.config.settings.skipped_update_version =
+                                                Some(version);
                                             let _ = self.config.save();
                                         }
                                     }
@@ -609,7 +759,7 @@ impl App {
                         match self.input_mode {
                             InputMode::Normal if key.kind == KeyEventKind::Press => {
                                 let keys = &self.config.keys;
-                                
+
                                 // Check custom keybindings
                                 let is_key = |code: KeyCode, target: &str| -> bool {
                                     match code {
@@ -635,11 +785,15 @@ impl App {
                                     return Ok(None);
                                 } else if is_key(key.code, &keys.help) {
                                     self.show_help = !self.show_help;
-                                } else if is_key(key.code, &keys.tab_next) || key.code == KeyCode::Tab {
+                                } else if is_key(key.code, &keys.tab_next)
+                                    || key.code == KeyCode::Tab
+                                {
                                     self.switch_tab();
                                     self.last_selected = usize::MAX;
                                     self.trigger_details_fetch();
-                                } else if is_key(key.code, &keys.tab_prev) || key.code == KeyCode::BackTab {
+                                } else if is_key(key.code, &keys.tab_prev)
+                                    || key.code == KeyCode::BackTab
+                                {
                                     self.switch_tab_previous();
                                     self.last_selected = usize::MAX;
                                     self.trigger_details_fetch();
@@ -685,7 +839,11 @@ impl App {
                                         let name = pkg.name.clone();
                                         let is_checked = !self.checked[self.selected];
                                         self.checked[self.selected] = is_checked;
-                                        if is_checked { self.selected_names.insert(name); } else { self.selected_names.remove(&name); }
+                                        if is_checked {
+                                            self.selected_names.insert(name);
+                                        } else {
+                                            self.selected_names.remove(&name);
+                                        }
                                     }
                                 } else if is_key(key.code, &keys.search_edit) {
                                     self.show_help = false;
@@ -703,7 +861,11 @@ impl App {
                                                     self.prev_spinner_type();
                                                 } else if self.settings_index == 4 {
                                                     self.prev_default_tab();
-                                                } else if self.settings_index == 1 || self.settings_index == 2 || (self.settings_index >= 6 && self.settings_index < 6 + mgr_count) {
+                                                } else if self.settings_index == 1
+                                                    || self.settings_index == 2
+                                                    || (self.settings_index >= 6
+                                                        && self.settings_index < 6 + mgr_count)
+                                                {
                                                     self.handle_settings_toggle();
                                                 }
                                             }
@@ -719,7 +881,11 @@ impl App {
                                                     self.next_spinner_type();
                                                 } else if self.settings_index == 4 {
                                                     self.next_default_tab();
-                                                } else if self.settings_index == 1 || self.settings_index == 2 || (self.settings_index >= 6 && self.settings_index < 6 + mgr_count) {
+                                                } else if self.settings_index == 1
+                                                    || self.settings_index == 2
+                                                    || (self.settings_index >= 6
+                                                        && self.settings_index < 6 + mgr_count)
+                                                {
                                                     self.handle_settings_toggle();
                                                 }
                                             }
@@ -737,7 +903,11 @@ impl App {
                                         }
                                         KeyCode::Down | KeyCode::Char('j') => {
                                             if self.current_tab == Tab::Settings {
-                                                let max = if self.config.theme_name == "Custom" { 14 } else { 8 };
+                                                let max = if self.config.theme_name == "Custom" {
+                                                    14
+                                                } else {
+                                                    8
+                                                };
                                                 if self.settings_index < max {
                                                     self.settings_index += 1;
                                                 }
@@ -771,7 +941,8 @@ impl App {
                                 }
                             }
 
-                            InputMode::Editing if key.kind == KeyEventKind::Press => match key.code {
+                            InputMode::Editing if key.kind == KeyEventKind::Press => match key.code
+                            {
                                 KeyCode::Enter => {
                                     if self.current_tab == Tab::Settings {
                                         self.handle_settings_save();
@@ -788,7 +959,7 @@ impl App {
                                 KeyCode::Right => self.move_cursor_right(),
                                 KeyCode::Esc => self.input_mode = InputMode::Normal,
                                 _ => {}
-                            }
+                            },
 
                             _ => {}
                         }
@@ -802,12 +973,20 @@ impl App {
         }
     }
 
-    fn handle_mouse_event(&mut self, mouse_event: event::MouseEvent, term_width: u16) -> Result<()> {
+    fn handle_mouse_event(
+        &mut self,
+        mouse_event: event::MouseEvent,
+        term_width: u16,
+    ) -> Result<()> {
         match mouse_event.kind {
             event::MouseEventKind::ScrollDown => {
                 if self.current_tab == Tab::Settings {
                     let mgr_count = self.available_managers.len();
-                    let max = if self.config.theme_name == "Custom" { 5 + mgr_count + 6 } else { 5 + mgr_count };
+                    let max = if self.config.theme_name == "Custom" {
+                        5 + mgr_count + 6
+                    } else {
+                        5 + mgr_count
+                    };
                     if self.settings_index < max {
                         self.settings_index += 1;
                     }
@@ -865,7 +1044,7 @@ impl App {
                 else if self.current_tab == Tab::Settings {
                     let r = mouse_event.row;
                     let mgr_count = self.available_managers.len() as u16;
-                    
+
                     let idx = if r >= 7 && r <= 12 {
                         Some(r - 7)
                     } else if r >= 14 && r < 14 + mgr_count {
@@ -892,11 +1071,19 @@ impl App {
                 // List/Details interaction
                 else {
                     let is_wide = term_width >= 100;
-                    let split_col = if is_wide { term_width / 2 } else { (term_width * 6) / 10 };
-                    
+                    let split_col = if is_wide {
+                        term_width / 2
+                    } else {
+                        (term_width * 6) / 10
+                    };
+
                     if mouse_event.column < split_col {
                         // Package List
-                        let offset = if self.current_tab == Tab::Search { 7 } else { 4 };
+                        let offset = if self.current_tab == Tab::Search {
+                            7
+                        } else {
+                            4
+                        };
                         if mouse_event.row >= offset {
                             let list_idx = (mouse_event.row - offset) as usize;
                             let state_offset = self.list_state.offset();
@@ -905,25 +1092,35 @@ impl App {
                                 self.selected = real_idx;
                                 self.list_state.select(Some(self.selected));
                                 self.trigger_details_fetch();
-                                
+
                                 if mouse_event.column < 5 {
                                     let name = self.packages[real_idx].name.clone();
                                     let is_checked = !self.checked[real_idx];
                                     self.checked[real_idx] = is_checked;
-                                    if is_checked { self.selected_names.insert(name); } else { self.selected_names.remove(&name); }
+                                    if is_checked {
+                                        self.selected_names.insert(name);
+                                    } else {
+                                        self.selected_names.remove(&name);
+                                    }
                                 }
                             }
                         }
-                        
+
                         // Scrollbar click for list
-                        if mouse_event.column >= split_col - 2 && mouse_event.column <= split_col - 1 {
-                             if mouse_event.row < (term_width / 2) {
-                                 if self.selected > 0 { self.selected -= 1; }
-                             } else {
-                                 if self.selected + 1 < self.packages.len() { self.selected += 1; }
-                             }
-                             self.list_state.select(Some(self.selected));
-                             self.trigger_details_fetch();
+                        if mouse_event.column >= split_col - 2
+                            && mouse_event.column <= split_col - 1
+                        {
+                            if mouse_event.row < (term_width / 2) {
+                                if self.selected > 0 {
+                                    self.selected -= 1;
+                                }
+                            } else {
+                                if self.selected + 1 < self.packages.len() {
+                                    self.selected += 1;
+                                }
+                            }
+                            self.list_state.select(Some(self.selected));
+                            self.trigger_details_fetch();
                         }
                     } else {
                         // Details Area Scroll
@@ -945,22 +1142,33 @@ impl App {
     fn handle_settings_toggle(&mut self) {
         let mgr_count = self.available_managers.len();
         match self.settings_index {
-            1 => { // Auto Update Check
+            1 => {
+                // Auto Update Check
                 self.config.settings.auto_update_check = !self.config.settings.auto_update_check;
                 let _ = self.config.save();
-                self.set_popup(format!("Auto Update Check: {}", self.config.settings.auto_update_check), Color::Cyan);
+                self.set_popup(
+                    format!(
+                        "Auto Update Check: {}",
+                        self.config.settings.auto_update_check
+                    ),
+                    Color::Cyan,
+                );
             }
-            2 => { // Auto Cleanup
+            2 => {
+                // Auto Cleanup
                 self.config.settings.auto_cleanup = !self.config.settings.auto_cleanup;
                 let _ = self.config.save();
-                self.set_popup(format!("Auto Cleanup: {}", self.config.settings.auto_cleanup), Color::Cyan);
+                self.set_popup(
+                    format!("Auto Cleanup: {}", self.config.settings.auto_cleanup),
+                    Color::Cyan,
+                );
             }
             i if i >= 6 && i < 6 + mgr_count => {
                 let mgr_name = self.available_managers[i - 6].clone();
                 self.toggle_manager(&mgr_name);
             }
-            i if i == 6 + mgr_count => { 
-                self.next_theme(); 
+            i if i == 6 + mgr_count => {
+                self.next_theme();
             }
             i if i == 6 + mgr_count + 1 => {
                 self.next_border_style();
@@ -975,7 +1183,10 @@ impl App {
                     3 => self.config.settings.search_debounce_ms.to_string(),
                     4 => self.config.settings.default_tab.clone(),
                     5 => self.config.settings.max_search_results.to_string(),
-                    i if i >= 7 + mgr_count && i <= 12 + mgr_count && self.config.theme_name == "Custom" => {
+                    i if i >= 7 + mgr_count
+                        && i <= 12 + mgr_count
+                        && self.config.theme_name == "Custom" =>
+                    {
                         let theme = self.config.custom_theme.as_ref().unwrap();
                         match i - (7 + mgr_count) {
                             0 => theme.border_color.clone(),
@@ -989,7 +1200,10 @@ impl App {
                     }
                     _ => String::new(),
                 };
-                if !self.input.is_empty() || (self.settings_index >= 7 + mgr_count && self.settings_index <= 12 + mgr_count) {
+                if !self.input.is_empty()
+                    || (self.settings_index >= 7 + mgr_count
+                        && self.settings_index <= 12 + mgr_count)
+                {
                     self.input_mode = InputMode::Editing;
                     self.character_index = self.input.chars().count();
                 }
@@ -1003,10 +1217,26 @@ impl App {
         let mut saved = false;
 
         match self.settings_index {
-            0 => { self.config.aur_helper = val; saved = true; }
-            3 => if let Ok(n) = val.parse() { self.config.settings.search_debounce_ms = n; saved = true; },
-            4 => { self.config.settings.default_tab = val; saved = true; }
-            5 => if let Ok(n) = val.parse() { self.config.settings.max_search_results = n; saved = true; },
+            0 => {
+                self.config.aur_helper = val;
+                saved = true;
+            }
+            3 => {
+                if let Ok(n) = val.parse() {
+                    self.config.settings.search_debounce_ms = n;
+                    saved = true;
+                }
+            }
+            4 => {
+                self.config.settings.default_tab = val;
+                saved = true;
+            }
+            5 => {
+                if let Ok(n) = val.parse() {
+                    self.config.settings.max_search_results = n;
+                    saved = true;
+                }
+            }
             i if i >= 7 + mgr_count && i <= 12 + mgr_count => {
                 if let Some(ref mut theme) = self.config.custom_theme {
                     match i - (7 + mgr_count) {
@@ -1032,4 +1262,3 @@ impl App {
         }
     }
 }
-

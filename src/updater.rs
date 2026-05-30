@@ -91,10 +91,10 @@ pub fn update_self(url: &str) -> Result<(), Box<dyn std::error::Error>> {
     for entry in archive.entries()? {
         let mut entry = entry?;
         let path = entry.path()?.to_path_buf();
-        
+
         // Match binary name regardless of subfolders in the archive
-        let is_binary = path.file_name().and_then(|s| s.to_str()) == Some("trx") || 
-                       path.file_name().and_then(|s| s.to_str()) == Some("trx.exe");
+        let is_binary = path.file_name().and_then(|s| s.to_str()) == Some("trx")
+            || path.file_name().and_then(|s| s.to_str()) == Some("trx.exe");
 
         if is_binary {
             let target_path = temp_dir.path().join(path.file_name().unwrap());

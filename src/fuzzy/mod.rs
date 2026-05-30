@@ -23,7 +23,10 @@ pub fn fuzzy_match(query: &str, target: &str) -> f64 {
     // Tier 2 – prefix match (target starts with the full query)
     if t_lower.starts_with(q_lower.as_str()) {
         // Shorter targets rank higher for the same prefix; use char count for Unicode safety.
-        let excess = (t_lower.chars().count().saturating_sub(q_lower.chars().count())) as f64;
+        let excess = (t_lower
+            .chars()
+            .count()
+            .saturating_sub(q_lower.chars().count())) as f64;
         return (499.0 - excess * 3.0).max(200.0);
     }
 
@@ -47,7 +50,10 @@ pub fn fuzzy_match(query: &str, target: &str) -> f64 {
             }
         }
         if word_boundary_match {
-            let excess = (t_lower.chars().count().saturating_sub(q_lower.chars().count())) as f64;
+            let excess = (t_lower
+                .chars()
+                .count()
+                .saturating_sub(q_lower.chars().count())) as f64;
             return (199.0 - excess * 2.0).max(100.0);
         }
     }
@@ -55,7 +61,10 @@ pub fn fuzzy_match(query: &str, target: &str) -> f64 {
     // Tier 4 – consecutive substring anywhere (case-insensitive).
     // Note: pos == 0 is already handled by Tier 2, so pos_bonus is omitted.
     if t_lower.contains(q_lower.as_str()) {
-        let excess = (t_lower.chars().count().saturating_sub(q_lower.chars().count())) as f64;
+        let excess = (t_lower
+            .chars()
+            .count()
+            .saturating_sub(q_lower.chars().count())) as f64;
         return (99.0 - excess * 1.5).max(30.0);
     }
 

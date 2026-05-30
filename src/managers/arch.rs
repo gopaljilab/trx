@@ -1,7 +1,7 @@
-use std::collections::{HashMap, HashSet};
-use crate::managers::{Package, PackageManager};
 use super::{pacman, yay};
+use crate::managers::{Package, PackageManager};
 use ratatui::DefaultTerminal;
+use std::collections::{HashMap, HashSet};
 
 pub struct ArchManager {
     pub aur_helper: String,
@@ -53,7 +53,7 @@ impl PackageManager for ArchManager {
                 .partial_cmp(&a.score)
                 .unwrap_or(std::cmp::Ordering::Equal)
         });
-        
+
         all.truncate(config.settings.max_search_results);
 
         // Update cache
@@ -88,7 +88,7 @@ impl PackageManager for ArchManager {
 
         let pure_name = pkg.split('/').last().unwrap_or(pkg);
         let provide = provider.split('/').next().unwrap_or(provider);
-        
+
         let info = match provide {
             "aur" => yay::aur_details(pure_name)?,
             "pacman" => pacman::pacman_info(pure_name)?,
@@ -104,7 +104,11 @@ impl PackageManager for ArchManager {
         Some(info)
     }
 
-    fn install(&self, terminal: &mut DefaultTerminal, pkgs: &HashSet<String>) -> Result<(), Box<dyn std::error::Error>> {
+    fn install(
+        &self,
+        terminal: &mut DefaultTerminal,
+        pkgs: &HashSet<String>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         if !self.aur_helper.is_empty() {
             // yay (or configured AUR helper) can transparently install both
             // official-repo and AUR packages; aur_install strips any "aur/" prefix.
@@ -116,11 +120,19 @@ impl PackageManager for ArchManager {
         Ok(())
     }
 
-    fn remove(&self, terminal: &mut DefaultTerminal, pkgs: &HashSet<String>) -> Result<(), Box<dyn std::error::Error>> {
+    fn remove(
+        &self,
+        terminal: &mut DefaultTerminal,
+        pkgs: &HashSet<String>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         pacman::pacman_remove(terminal, pkgs)
     }
 
-    fn update_packages(&self, terminal: &mut DefaultTerminal, pkgs: &HashSet<String>) -> Result<(), Box<dyn std::error::Error>> {
+    fn update_packages(
+        &self,
+        terminal: &mut DefaultTerminal,
+        pkgs: &HashSet<String>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         if pkgs.is_empty() {
             return Ok(());
         }
@@ -136,10 +148,13 @@ impl PackageManager for ArchManager {
         Ok(())
     }
 
-    fn system_upgrade(&self, terminal: &mut DefaultTerminal) -> Result<(), Box<dyn std::error::Error>> {
+    fn system_upgrade(
+        &self,
+        terminal: &mut DefaultTerminal,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let config = crate::config::Config::load();
         let enabled = &config.settings.enabled_managers;
-        
+
         if enabled.contains(&"pacman".to_string()) {
             pacman::system_upgrade(terminal)?;
         }
@@ -149,7 +164,10 @@ impl PackageManager for ArchManager {
         Ok(())
     }
 
-    fn refresh_databases(&self, terminal: &mut DefaultTerminal) -> Result<(), Box<dyn std::error::Error>> {
+    fn refresh_databases(
+        &self,
+        terminal: &mut DefaultTerminal,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         pacman::refresh_databases(terminal)
     }
 }
